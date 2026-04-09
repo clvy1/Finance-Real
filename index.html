@@ -443,6 +443,16 @@ const I18N={
   }
 };
 
+const EXTRA_T={
+  pt:{wallet:"Carteira",adjustmentCat:"Ajuste de saldo",adjustAccount:"Ajustar saldo da conta",currentAccountBalance:"Saldo calculado atual",realAccountBalance:"Saldo real informado",difference:"Diferença",adjustmentNote:"Descrição do ajuste",adjustmentNotePh:"Ex: conciliação com saldo do banco",generateAdjustment:"Gerar lançamento de ajuste",correctBaseBalance:"Corrigir saldo base desta conta",adjustAccountHint:"Recomendado: gerar um lançamento para manter o histórico. Use correção direta somente quando quiser recalibrar o saldo base.",noDifference:"Nenhuma diferença para ajustar",adjustmentCreated:"Ajuste de saldo registrado ✓",baseCorrected:"Saldo base da conta corrigido ✓",adjustBalanceBtn:"✏️ Ajustar saldo",openingBalance:"Saldo base",realBalanceDetected:"Saldo real",adjustmentAutoDesc:"Ajuste de saldo",walletDesc:"Dinheiro em carteira",recalibrate:"Recalibrar saldo base"},
+  en:{wallet:"Wallet",adjustmentCat:"Balance adjustment",adjustAccount:"Adjust account balance",currentAccountBalance:"Current calculated balance",realAccountBalance:"Real balance entered",difference:"Difference",adjustmentNote:"Adjustment note",adjustmentNotePh:"Example: reconcile with bank balance",generateAdjustment:"Create adjustment entry",correctBaseBalance:"Correct this account base balance",adjustAccountHint:"Recommended: create an adjustment entry to keep history. Use direct correction only when you want to recalibrate the opening/base balance.",noDifference:"No difference to adjust",adjustmentCreated:"Balance adjustment saved ✓",baseCorrected:"Base balance corrected ✓",adjustBalanceBtn:"✏️ Adjust balance",openingBalance:"Opening balance",realBalanceDetected:"Real balance",adjustmentAutoDesc:"Balance adjustment",walletDesc:"Cash wallet",recalibrate:"Recalibrate base balance"},
+  es:{wallet:"Billetera",adjustmentCat:"Ajuste de saldo",adjustAccount:"Ajustar saldo",currentAccountBalance:"Saldo calculado actual",realAccountBalance:"Saldo real informado",difference:"Diferencia",adjustmentNote:"Nota del ajuste",adjustmentNotePh:"Ej.: conciliación con saldo bancario",generateAdjustment:"Crear ajuste",correctBaseBalance:"Corregir saldo base",adjustAccountHint:"Se recomienda crear un ajuste para mantener el historial.",noDifference:"Sin diferencia para ajustar",adjustmentCreated:"Ajuste registrado ✓",baseCorrected:"Saldo base corregido ✓",adjustBalanceBtn:"✏️ Ajustar saldo",openingBalance:"Saldo base",realBalanceDetected:"Saldo real",adjustmentAutoDesc:"Ajuste de saldo",walletDesc:"Efectivo",recalibrate:"Recalibrar saldo base"},
+  fr:{wallet:"Portefeuille",adjustmentCat:"Ajustement de solde",adjustAccount:"Ajuster le solde",currentAccountBalance:"Solde calculé",realAccountBalance:"Solde réel",difference:"Différence",adjustmentNote:"Note d'ajustement",adjustmentNotePh:"Ex.: rapprochement bancaire",generateAdjustment:"Créer l'ajustement",correctBaseBalance:"Corriger le solde de base",adjustAccountHint:"Il est recommandé de créer une écriture d'ajustement.",noDifference:"Aucune différence",adjustmentCreated:"Ajustement enregistré ✓",baseCorrected:"Solde de base corrigé ✓",adjustBalanceBtn:"✏️ Ajuster le solde",openingBalance:"Solde de base",realBalanceDetected:"Solde réel",adjustmentAutoDesc:"Ajustement de solde",walletDesc:"Espèces",recalibrate:"Recalibrer le solde"},
+  de:{wallet:"Brieftasche",adjustmentCat:"Saldoanpassung",adjustAccount:"Saldo anpassen",currentAccountBalance:"Berechneter Saldo",realAccountBalance:"Echter Saldo",difference:"Differenz",adjustmentNote:"Anpassungsnotiz",adjustmentNotePh:"Bsp.: Bankabgleich",generateAdjustment:"Anpassung buchen",correctBaseBalance:"Basissaldo korrigieren",adjustAccountHint:"Empfohlen: Buchung erzeugen, um den Verlauf zu behalten.",noDifference:"Keine Differenz",adjustmentCreated:"Anpassung gespeichert ✓",baseCorrected:"Basissaldo korrigiert ✓",adjustBalanceBtn:"✏️ Saldo anpassen",openingBalance:"Basissaldo",realBalanceDetected:"Echter Saldo",adjustmentAutoDesc:"Saldoanpassung",walletDesc:"Bargeld",recalibrate:"Basissaldo neu kalibrieren"},
+  it:{wallet:"Portafoglio",adjustmentCat:"Rettifica saldo",adjustAccount:"Rettifica saldo",currentAccountBalance:"Saldo calcolato",realAccountBalance:"Saldo reale",difference:"Differenza",adjustmentNote:"Nota rettifica",adjustmentNotePh:"Es.: riconciliazione bancaria",generateAdjustment:"Crea rettifica",correctBaseBalance:"Correggi saldo base",adjustAccountHint:"Consigliato: crea un movimento di rettifica per mantenere lo storico.",noDifference:"Nessuna differenza",adjustmentCreated:"Rettifica registrata ✓",baseCorrected:"Saldo base corretto ✓",adjustBalanceBtn:"✏️ Rettifica saldo",openingBalance:"Saldo base",realBalanceDetected:"Saldo reale",adjustmentAutoDesc:"Rettifica saldo",walletDesc:"Contanti",recalibrate:"Ricalibra saldo base"},
+  zh:{wallet:"钱包",adjustmentCat:"余额调整",adjustAccount:"调整账户余额",currentAccountBalance:"当前计算余额",realAccountBalance:"输入的实际余额",difference:"差额",adjustmentNote:"调整说明",adjustmentNotePh:"例如：与银行余额对账",generateAdjustment:"生成调整记录",correctBaseBalance:"修正基础余额",adjustAccountHint:"建议生成调整记录以保留历史。",noDifference:"没有需要调整的差额",adjustmentCreated:"余额调整已保存 ✓",baseCorrected:"基础余额已修正 ✓",adjustBalanceBtn:"✏️ 调整余额",openingBalance:"基础余额",realBalanceDetected:"实际余额",adjustmentAutoDesc:"余额调整",walletDesc:"现金钱包",recalibrate:"重新校准基础余额"}
+};
+
 /* ── CURRENCIES ────────────────────────────────────────── */
 const CURRENCIES=[
   {id:"BRL",symbol:"R$",label:"Real Brasileiro (BRL)",flag:"🇧🇷"},
@@ -473,17 +483,17 @@ const TIPS={
 
 /* ── CATEGORIES (will be translated by key) ─────────────── */
 const CAT_LABELS={
-  pt:{food:"Alimentação",transport:"Transporte",health:"Saúde",leisure:"Lazer",bills:"Contas",shopping:"Compras",salary:"Salário",transfer:"Transferência",other:"Outros"},
-  en:{food:"Food",transport:"Transport",health:"Health",leisure:"Leisure",bills:"Bills",shopping:"Shopping",salary:"Salary",transfer:"Transfer",other:"Other"},
-  es:{food:"Alimentación",transport:"Transporte",health:"Salud",leisure:"Ocio",bills:"Facturas",shopping:"Compras",salary:"Salario",transfer:"Transferencia",other:"Otros"},
-  fr:{food:"Alimentation",transport:"Transport",health:"Santé",leisure:"Loisirs",bills:"Factures",shopping:"Achats",salary:"Salaire",transfer:"Virement",other:"Autres"},
-  de:{food:"Lebensmittel",transport:"Transport",health:"Gesundheit",leisure:"Freizeit",bills:"Rechnungen",shopping:"Einkaufen",salary:"Gehalt",transfer:"Überweisung",other:"Sonstiges"},
-  it:{food:"Alimentazione",transport:"Trasporto",health:"Salute",leisure:"Svago",bills:"Bollette",shopping:"Acquisti",salary:"Stipendio",transfer:"Bonifico",other:"Altro"},
-  zh:{food:"餐饮",transport:"交通",health:"健康",leisure:"休闲",bills:"账单",shopping:"购物",salary:"薪资",transfer:"转账",other:"其他"},
+  pt:{food:"Alimentação",transport:"Transporte",health:"Saúde",leisure:"Lazer",bills:"Contas",shopping:"Compras",salary:"Salário",transfer:"Transferência",adjustment:"Ajuste de saldo",other:"Outros"},
+  en:{food:"Food",transport:"Transport",health:"Health",leisure:"Leisure",bills:"Bills",shopping:"Shopping",salary:"Salary",transfer:"Transfer",adjustment:"Balance adjustment",other:"Other"},
+  es:{food:"Alimentación",transport:"Transporte",health:"Salud",leisure:"Ocio",bills:"Facturas",shopping:"Compras",salary:"Salario",transfer:"Transferencia",adjustment:"Ajuste de saldo",other:"Otros"},
+  fr:{food:"Alimentation",transport:"Transport",health:"Santé",leisure:"Loisirs",bills:"Factures",shopping:"Achats",salary:"Salaire",transfer:"Virement",adjustment:"Ajustement de solde",other:"Autres"},
+  de:{food:"Lebensmittel",transport:"Transport",health:"Gesundheit",leisure:"Freizeit",bills:"Rechnungen",shopping:"Einkaufen",salary:"Gehalt",transfer:"Überweisung",adjustment:"Saldoanpassung",other:"Sonstiges"},
+  it:{food:"Alimentazione",transport:"Trasporto",health:"Salute",leisure:"Svago",bills:"Bollette",shopping:"Acquisti",salary:"Stipendio",transfer:"Bonifico",adjustment:"Rettifica saldo",other:"Altro"},
+  zh:{food:"餐饮",transport:"交通",health:"健康",leisure:"休闲",bills:"账单",shopping:"购物",salary:"薪资",transfer:"转账",adjustment:"余额调整",other:"其他"},
 };
-const CAT_ICONS={food:"🍔",transport:"🚗",health:"💊",leisure:"🎮",bills:"📄",shopping:"🛍️",salary:"💰",transfer:"🔄",other:"📦"};
-const CAT_COLORS={food:"#FF6B6B",transport:"#4ECDC4",health:"#45B7D1",leisure:"#96CEB4",bills:"#FFEAA7",shopping:"#DDA0DD",salary:"#98FB98",transfer:"#87CEEB",other:"#F0A500"};
-const CAT_IDS=["food","transport","health","leisure","bills","shopping","salary","transfer","other"];
+const CAT_ICONS={food:"🍔",transport:"🚗",health:"💊",leisure:"🎮",bills:"📄",shopping:"🛍️",salary:"💰",transfer:"🔄",adjustment:"🧮",other:"📦"};
+const CAT_COLORS={food:"#FF6B6B",transport:"#4ECDC4",health:"#45B7D1",leisure:"#96CEB4",bills:"#FFEAA7",shopping:"#DDA0DD",salary:"#98FB98",transfer:"#87CEEB",adjustment:"#A78BFA",other:"#F0A500"};
+const CAT_IDS=["food","transport","health","leisure","bills","shopping","salary","transfer","adjustment","other"];
 
 const MONTHS_BASE=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const TODAY="2026-04-08";
@@ -495,10 +505,11 @@ const BKP_IDS=["manual","daily","weekly","monthly"];
 const BKP_LABELS={pt:["Apenas manual","Diário","Semanal","Mensal"],en:["Manual only","Daily","Weekly","Monthly"],es:["Solo manual","Diario","Semanal","Mensual"],fr:["Manuel seulement","Quotidien","Hebdomadaire","Mensuel"],de:["Nur manuell","Täglich","Wöchentlich","Monatlich"],it:["Solo manuale","Giornaliero","Settimanale","Mensile"],zh:["仅手动","每日","每周","每月"]};
 
 const INIT_ACCS=[
-  {id:"acc1",name:"Nubank",   type:"checking",color:"#820AD1",icon:"💳",balance:3200,   includeInTotal:true},
-  {id:"acc2",name:"Itaú CC",  type:"checking",color:"#FF6B00",icon:"🏦",balance:1850.5, includeInTotal:true},
-  {id:"acc3",name:"Poupança", type:"savings", color:"#10B981",icon:"🐷",balance:8400,   includeInTotal:true},
-  {id:"acc4",name:"Visa Ouro",type:"credit",  color:"#F59E0B",icon:"💎",balance:-1200,  includeInTotal:true},
+  {id:"acc1",name:"Nubank",   type:"checking",color:"#820AD1",icon:"💳",openingBalance:3200,   includeInTotal:true},
+  {id:"acc2",name:"Itaú CC",  type:"checking",color:"#FF6B00",icon:"🏦",openingBalance:1850.5, includeInTotal:true},
+  {id:"acc3",name:"Poupança", type:"savings", color:"#10B981",icon:"🐷",openingBalance:8400,   includeInTotal:true},
+  {id:"acc4",name:"Visa Ouro",type:"credit",  color:"#F59E0B",icon:"💎",openingBalance:-1200,  includeInTotal:true},
+  {id:"acc5",name:"Carteira", type:"wallet",  color:"#3B82F6",icon:"💵",openingBalance:200,    includeInTotal:true},
 ];
 const INIT_TX=[
   {id:"t1",desc:"Salário Abril",  amount:4500, type:"income", cat:"salary",date:"2026-04-05",status:"paid",   accountId:"acc1",recurrent:false,dueDate:"2026-04-05"},
@@ -532,6 +543,16 @@ function ts(){
   const n=new Date();
   return `${n.getFullYear()}${String(n.getMonth()+1).padStart(2,"0")}${String(n.getDate()).padStart(2,"0")}_${String(n.getHours()).padStart(2,"0")}${String(n.getMinutes()).padStart(2,"0")}${String(n.getSeconds()).padStart(2,"0")}`;
 }
+
+const round2=n=>Math.round((Number(n)||0)*100)/100;
+const normalizeAccount=acc=>({
+  ...acc,
+  type:acc?.type||"checking",
+  includeInTotal:acc?.includeInTotal!==false,
+  icon:acc?.icon||"🏦",
+  color:acc?.color||"#6366F1",
+  openingBalance:typeof acc?.openingBalance==="number"?acc.openingBalance:(typeof acc?.balance==="number"?acc.balance:(parseFloat(acc?.balance)||0))
+});
 
 /* ── SMALL COMPONENTS ─────────────────────────────────── */
 function AppIcon({size=26}){
@@ -722,6 +743,9 @@ function App(){
   const [showHist,  setShowHist] = useState(false);
   const [editBM,    setEditBM]   = useState(null);
   const [tmpBal,    setTmpBal]   = useState("");
+  const [editAccId, setEditAccId]= useState(null);
+  const [accRealBal,setAccRealBal]=useState("");
+  const [accAdjNote,setAccAdjNote]=useState("");
   const [deferPmt,  setDeferPmt] = useState(null);
   // PIN
   const [locked,    setLocked]   = useState(()=>userCfg.pinEnabled && !!localStorage.getItem("fr3_pin"));
@@ -741,6 +765,27 @@ function App(){
 
   const T = I18N[userCfg.lang] || I18N.pt;
   const CURR = CURRENCIES.find(c=>c.id===userCfg.currency)||CURRENCIES[0];
+  const XT = EXTRA_T[userCfg.lang] || EXTRA_T.en;
+
+  useEffect(()=>{
+    setAccs(prev=>{
+      const next=(prev||[]).map(normalizeAccount);
+      return JSON.stringify(prev)===JSON.stringify(next)?prev:next;
+    });
+  },[]);
+
+  const accBalanceById = useMemo(()=>Object.fromEntries((accs||[]).map(a=>{
+    const acc=normalizeAccount(a);
+    const delta=(txs||[]).filter(t=>t.accountId===acc.id&&t.status==="paid").reduce((s,t)=>s+(t.type==="income"?t.amount:-t.amount),0);
+    return [acc.id,round2(acc.openingBalance+delta)];
+  })),[accs,txs]);
+  const getAccBal = useCallback(id=>accBalanceById[id]??0,[accBalanceById]);
+  const typeLabel = useCallback(type=>{
+    if(type==="checking")return T.checking;
+    if(type==="savings")return T.savings;
+    if(type==="credit")return T.credit;
+    return XT.wallet;
+  },[T,XT]);
   const driveClientConfigured = GOOGLE_DRIVE_CONFIG.CLIENT_ID && !GOOGLE_DRIVE_CONFIG.CLIENT_ID.startsWith("COLE_AQUI");
   const driveConfiguredLabel = driveClientConfigured ? "Google Drive configurado" : "Google Drive pendente de configuração";
 
@@ -772,7 +817,7 @@ function App(){
   const totPend = pending.reduce((a,t)=>a+t.amount,0);
   const overdue = pending.filter(t=>ddiff(t.dueDate)<0);
   const dueSoon = pending.filter(t=>{const d=ddiff(t.dueDate);return d>=0&&d<=3;});
-  const totAssets=accs.filter(a=>a.includeInTotal).reduce((s,a)=>s+a.balance,0);
+  const totAssets=accs.filter(a=>a.includeInTotal).reduce((s,a)=>s+getAccBal(a.id),0);
 
   const getMonBal=ym=>{
     const h=balH[ym];
@@ -990,12 +1035,37 @@ function App(){
   const delTx  =id=>{setTxs(p=>p.filter(t=>t.id!==id));setModal(null);toast_(T.removed,"#EF4444");};
 
   // ── ACCOUNT ──
-  const blankA={name:"",type:"checking",color:"#7C6FFF",icon:"🏦",balance:"",includeInTotal:true};
+  const blankA={name:"",type:"checking",color:"#7C6FFF",icon:"🏦",openingBalance:"",includeInTotal:true};
   const [aForm,setAForm]=useState(blankA);
   const addAcc=()=>{
     if(!aForm.name)return;
-    setAccs(p=>[...p,{...aForm,id:uid(),balance:parseFloat(aForm.balance)||0}]);
+    setAccs(p=>[...p,{...aForm,id:uid(),openingBalance:parseFloat(aForm.openingBalance)||0}]);
     setModal(null);setAForm(blankA);toast_(T.accAdded);
+  };
+
+  const openAccAdjust=id=>{
+    setEditAccId(id);
+    setAccRealBal(String(getAccBal(id)));
+    setAccAdjNote("");
+    setModal("accAdj");
+  };
+  const saveAccAdjustmentTx=()=>{
+    const real=parseFloat(accRealBal);
+    if(isNaN(real)||!editAccId)return;
+    const diff=round2(real-getAccBal(editAccId));
+    if(Math.abs(diff)<0.005){toast_(XT.noDifference,"#F59E0B");return;}
+    setTxs(p=>[{id:uid(),desc:accAdjNote.trim()||XT.adjustmentAutoDesc,amount:Math.abs(diff),type:diff>=0?"income":"expense",cat:"adjustment",date:TODAY,status:"paid",accountId:editAccId,recurrent:false,dueDate:TODAY},...p]);
+    setModal(null);
+    toast_(XT.adjustmentCreated,"#8B5CF6");
+  };
+  const saveAccBaseCorrection=()=>{
+    const real=parseFloat(accRealBal);
+    if(isNaN(real)||!editAccId)return;
+    const diff=round2(real-getAccBal(editAccId));
+    if(Math.abs(diff)<0.005){toast_(XT.noDifference,"#F59E0B");return;}
+    setAccs(p=>p.map(a=>a.id===editAccId?{...normalizeAccount(a),openingBalance:round2(normalizeAccount(a).openingBalance+diff)}:a));
+    setModal(null);
+    toast_(XT.baseCorrected,"#3B82F6");
   };
 
   // ── BAL ADJ ──
@@ -1306,10 +1376,13 @@ function App(){
                   <div style={{fontSize:20,marginBottom:5}}>{a.icon}</div>
                   <p style={{fontSize:11,color:"#64748B",fontWeight:700}}>{a.name}</p>
                   <p className="mono" style={{fontSize:15,fontWeight:700,marginTop:2,
-                    color:a.balance>=0?a.color:"#F87171"}}>{fmtC(a.balance)}</p>
+                    color:getAccBal(a.id)>=0?a.color:"#F87171"}}>{fmtC(getAccBal(a.id))}</p>
                   <span style={{fontSize:9,color:"#475569",fontWeight:700}}>
-                    {a.type==="checking"?T.checking.split(" ").pop():a.type==="savings"?T.savings.split(" ").pop():T.credit.split(" ").pop()}
+                    {typeLabel(a.type).split(" ").pop()}
                   </span>
+                  <button onClick={(e)=>{e.stopPropagation();openAccAdjust(a.id);}} style={{marginTop:6,background:"#111827",border:"1px solid #1F2D45",color:"#94A3B8",borderRadius:8,padding:"3px 7px",fontSize:9,cursor:"pointer",fontWeight:700}}>
+                    {XT.adjustBalanceBtn}
+                  </button>
                 </div>
               ))}
             </div>
@@ -1549,16 +1622,21 @@ function App(){
                     display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{a.icon}</div>
                   <div style={{flex:1}}>
                     <p style={{fontSize:13,fontWeight:700}}>{a.name}</p>
-                    <p style={{fontSize:10,color:"#64748B"}}>{a.type==="checking"?T.checking:a.type==="savings"?T.savings:T.credit}</p>
+                    <p style={{fontSize:10,color:"#64748B"}}>{typeLabel(a.type)} · {XT.openingBalance}: {fmtC(normalizeAccount(a).openingBalance)}</p>
                   </div>
                   <div style={{textAlign:"right"}}>
-                    <p className="mono" style={{fontSize:12,fontWeight:700,color:a.balance>=0?a.color:"#F87171"}}>{fmtC(a.balance)}</p>
+                    <p className="mono" style={{fontSize:12,fontWeight:700,color:getAccBal(a.id)>=0?a.color:"#F87171"}}>{fmtC(getAccBal(a.id))}</p>
                     <button onClick={()=>setAccs(p=>p.map(x=>x.id===a.id?{...x,includeInTotal:!x.includeInTotal}:x))}
                       style={{background:a.includeInTotal?"#34D39920":"#1A2640",
                         border:`1px solid ${a.includeInTotal?"#34D39940":"#2A3A55"}`,
                         color:a.includeInTotal?"#34D399":"#475569",borderRadius:6,
                         padding:"2px 6px",fontSize:9,cursor:"pointer",fontWeight:700,marginTop:2}}>
                       {a.includeInTotal?"∑ ON":"∑ OFF"}
+                    </button>
+                    <button onClick={()=>openAccAdjust(a.id)}
+                      style={{background:"#1A2640",border:"1px solid #2A3A55",color:"#94A3B8",borderRadius:6,
+                        padding:"2px 6px",fontSize:9,cursor:"pointer",fontWeight:700,marginTop:4}}>
+                      {XT.adjustBalanceBtn}
                     </button>
                   </div>
                 </div>
@@ -1908,10 +1986,11 @@ function App(){
                 <option value="checking">{T.checking}</option>
                 <option value="savings">{T.savings}</option>
                 <option value="credit">{T.credit}</option>
+                <option value="wallet">{XT.wallet}</option>
               </select>
             </div>
-            <div><label>{T.initBal}</label>
-              <input type="number" inputMode="decimal" placeholder="0,00" value={aForm.balance} onChange={e=>setAForm(f=>({...f,balance:e.target.value}))}/>
+            <div><label>{XT.openingBalance}</label>
+              <input type="number" inputMode="decimal" placeholder="0,00" value={aForm.openingBalance} onChange={e=>setAForm(f=>({...f,openingBalance:e.target.value}))}/>
             </div>
             <div><label>{T.icon}</label>
               <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -2034,6 +2113,36 @@ function App(){
         </Overlay>
       )}
 
+      {/* ACCOUNT BALANCE ADJUST */}
+      {modal==="accAdj"&&editAccId&&(()=>{
+        const acc=accs.find(a=>a.id===editAccId);
+        if(!acc)return null;
+        const current=getAccBal(editAccId);
+        const real=parseFloat(accRealBal);
+        const diff=isNaN(real)?0:round2(real-current);
+        return(
+          <Overlay onClose={()=>setModal(null)}>
+            <MH title={XT.adjustAccount} onClose={()=>setModal(null)}/>
+            <div style={{background:"#111827",borderRadius:14,padding:12,marginBottom:12,display:"flex",gap:10,alignItems:"center"}}>
+              <div style={{width:42,height:42,borderRadius:12,background:acc.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{acc.icon}</div>
+              <div>
+                <p style={{fontSize:14,fontWeight:800}}>{acc.name}</p>
+                <p style={{fontSize:11,color:"#64748B"}}>{typeLabel(acc.type)}</p>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:11}}>
+              <div><label>{XT.currentAccountBalance}</label><div className="card" style={{padding:"12px 14px",borderRadius:12}}><span className="mono" style={{fontSize:16,fontWeight:800,color:current>=0?"#34D399":"#F87171"}}>{fmtC(current)}</span></div></div>
+              <div><label>{XT.realAccountBalance}</label><input type="number" inputMode="decimal" value={accRealBal} onChange={e=>setAccRealBal(e.target.value)}/></div>
+              <div><label>{XT.difference}</label><div className="card" style={{padding:"12px 14px",borderRadius:12}}><span className="mono" style={{fontSize:16,fontWeight:800,color:diff>=0?"#34D399":"#F87171"}}>{isNaN(real)?"—":fmtC(diff)}</span></div></div>
+              <div><label>{XT.adjustmentNote}</label><input placeholder={XT.adjustmentNotePh} value={accAdjNote} onChange={e=>setAccAdjNote(e.target.value)}/></div>
+              <p style={{fontSize:11,color:"#64748B"}}>{XT.adjustAccountHint}</p>
+              <button className="btn" onClick={saveAccAdjustmentTx} style={{background:"linear-gradient(135deg,#8B5CF6,#7C3AED)"}}>{XT.generateAdjustment}</button>
+              <button className="btn2" style={{width:"100%",textAlign:"center"}} onClick={saveAccBaseCorrection}>{XT.correctBaseBalance}</button>
+            </div>
+          </Overlay>
+        );
+      })()}
+
       {/* TX DETAIL */}
       {modal==="txDet"&&detTx&&(()=>{
         const t=detTx,acc=accs.find(a=>a.id===t.accountId);
@@ -2055,6 +2164,7 @@ function App(){
                 [T.statusL,<span className="pill" style={{background:t.status==="paid"?"#34D39920":"#F59E0B20",color:t.status==="paid"?"#34D399":"#F59E0B",border:`1px solid ${t.status==="paid"?"#34D39940":"#F59E0B40"}`}}>{t.status==="paid"?T.paidL:T.paying}</span>],
                 [T.type,t.type==="income"?T.incomeL:T.expenseL],
                 [T.account,acc?`${acc.icon} ${acc.name}`:"—"],
+                [XT.openingBalance,acc?fmtC(normalizeAccount(acc).openingBalance):"—"],
                 [T.date,new Date(t.date+"T12:00:00").toLocaleDateString()],
                 t.status==="pending"?[T.dueDate,new Date(t.dueDate+"T12:00:00").toLocaleDateString()]:null,
                 t.recurrent?[T.recurrence,`🔁 ${t.recurrence==="monthly"?T.monthly:t.recurrence==="weekly"?T.weekly:T.yearly}`]:null,
