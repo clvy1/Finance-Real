@@ -635,7 +635,8 @@ function Section({title,color,items,accs,onPay,T,fmtC}){
       <p style={{fontSize:11,fontWeight:800,color,letterSpacing:.8,marginBottom:8}}>{title}</p>
       {items.map(t=>{
         const cat=t.cat,ci=CAT_ICONS[cat]||"📦",cc=CAT_COLORS[cat]||"#F0A500";
-        const acc=getTxAccountMeta(t),d=ddiff(t.dueDate);
+        const acc=(accs.find(a=>a.id===t.accountId)
+          || (t?.accountNameSnapshot||t?.accountRemoved ? {name:t.accountNameSnapshot||"Conta removida",icon:t.accountIconSnapshot||"🗃️",color:t.accountColorSnapshot||"#64748B"} : null)),d=ddiff(t.dueDate);
         const dayStr=d<0?T.daysAgo.replace("{n}",Math.abs(d)):d===0?T.today:T.inDays.replace("{n}",d);
         return(
           <div key={t.id} style={{background:color+"0F",border:`1px solid ${color}30`,
@@ -746,6 +747,10 @@ function App(){
   const [editAccId, setEditAccId]= useState(null);
   const [accRealBal,setAccRealBal]=useState("");
   const [accAdjNote,setAccAdjNote]=useState("");
+  const [accDeleteFutureMode,setAccDeleteFutureMode]=useState("transfer");
+  const [accDeleteTargetId,setAccDeleteTargetId]=useState("");
+  const [accDeleteBalanceMode,setAccDeleteBalanceMode]=useState("transfer");
+  const [accDeleteBalanceTargetId,setAccDeleteBalanceTargetId]=useState("");
   const [deferPmt,  setDeferPmt] = useState(null);
   // PIN
   const [locked,    setLocked]   = useState(()=>userCfg.pinEnabled && !!localStorage.getItem("fr3_pin"));
@@ -1663,18 +1668,18 @@ function App(){
                     <p style={{fontSize:13,fontWeight:700}}>{a.name}</p>
                     <p style={{fontSize:10,color:"#64748B"}}>{typeLabel(a.type)} · {XT.openingBalance}: {fmtC(normalizeAccount(a).openingBalance)}</p>
                   </div>
-                  <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"stretch",gap:4,minWidth:116,position:"relative",zIndex:2}}>
+                  <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"stretch",gap:4,minWidth:92,position:"relative",zIndex:2}}>
                     <p className="mono" style={{fontSize:12,fontWeight:700,color:getAccBal(a.id)>=0?a.color:"#F87171"}}>{fmtC(getAccBal(a.id))}</p>
                     <button type="button" onClick={(e)=>{e.stopPropagation();setAccs(p=>p.map(x=>x.id===a.id?{...x,includeInTotal:!x.includeInTotal}:x));}}
                       style={{background:a.includeInTotal?"#34D39920":"#1A2640",
                         border:`1px solid ${a.includeInTotal?"#34D39940":"#2A3A55"}`,
                         color:a.includeInTotal?"#34D399":"#475569",borderRadius:8,
-                        padding:"6px 8px",fontSize:10,cursor:"pointer",fontWeight:700,width:"100%",pointerEvents:"auto"}}>
+                        padding:"3px 7px",fontSize:9,cursor:"pointer",fontWeight:700,width:"100%",pointerEvents:"auto"}}>
                       {a.includeInTotal?"∑ ON":"∑ OFF"}
                     </button>
                     <button type="button" onClick={(e)=>{e.stopPropagation();openAccAdjust(a.id);}}
                       style={{background:"#1A2640",border:"1px solid #2A3A55",color:"#94A3B8",borderRadius:8,
-                        padding:"8px 8px",fontSize:10,cursor:"pointer",fontWeight:700,width:"100%",pointerEvents:"auto",touchAction:"manipulation"}}>
+                        padding:"3px 7px",fontSize:9,cursor:"pointer",fontWeight:700,width:"100%",pointerEvents:"auto",touchAction:"manipulation"}}>
                       {XT.manageAccountBtn}
                     </button>
                   </div>
