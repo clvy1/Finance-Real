@@ -22,7 +22,7 @@
 </script>
 <script>
 if('serviceWorker' in navigator){
-  const c=`const CACHE='fr-v4';self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['/']).catch(()=>{})));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('<h1>Finance Real — Offline</h1>',{headers:{'Content-Type':'text/html'}}))));});`;
+  const c=`const CACHE='fr-v5';self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['/']).catch(()=>{})));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('<h1>Finance Real — Offline</h1>',{headers:{'Content-Type':'text/html'}}))));});`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'}))).catch(()=>{});
 }
 </script>
@@ -449,15 +449,15 @@ function App(){
   useEffect(()=>{if(userCfg.tipsEnabled && !locked) setShowTip(true);},[]);
 
   const mTxs    = txs.filter(t=>t.date.startsWith(selMon));
-  const income  = mTxs.filter(t=>(t.type==="income"||t.type==="transfer_in")&&t.status==="paid").reduce((a,t)=>a+t.amount,0);
-  const expenses= mTxs.filter(t=>(t.type==="expense"||t.type==="transfer_out")&&t.status==="paid").reduce((a,t)=>a+t.amount,0);
+  const income  = mTxs.filter(t=>t.type==="income"&&t.status==="paid").reduce((a,t)=>a+t.amount,0);
+  const expenses= mTxs.filter(t=>t.type==="expense"&&t.status==="paid").reduce((a,t)=>a+t.amount,0);
   const pending = txs.filter(t=>t.status==="pending"&&t.type==="expense");
   const totPend = pending.reduce((a,t)=>a+t.amount,0);
   const overdue = pending.filter(t=>ddiff(t.dueDate)<0);
   const dueSoon = pending.filter(t=>{const d=ddiff(t.dueDate);return d>=0&&d<=3;});
   const totAssets=accs.filter(a=>a.includeInTotal).reduce((s,a)=>s+getAccBal(a.id),0);
 
-  const getMonBal=ym=>{const h=balH[ym];if(h?.adjusted&&h?.manual!==null)return h.manual;const t=txs.filter(x=>x.date.startsWith(ym));return t.filter(x=>(x.type==="income"||x.type==="transfer_in")&&x.status==="paid").reduce((a,x)=>a+x.amount,0)-t.filter(x=>(x.type==="expense"||x.type==="transfer_out")&&x.status==="paid").reduce((a,x)=>a+x.amount,0);};
+  const getMonBal=ym=>{const h=balH[ym];if(h?.adjusted&&h?.manual!==null)return h.manual;const t=txs.filter(x=>x.date.startsWith(ym));return t.filter(x=>x.type==="income"&&x.status==="paid").reduce((a,x)=>a+x.amount,0)-t.filter(x=>x.type==="expense"&&x.status==="paid").reduce((a,x)=>a+x.amount,0);};
   const histMons=ALL_MONTHS.map(ym=>({ym,label:MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4),balance:getMonBal(ym),adjusted:balH[ym]?.adjusted}));
 
   const toast_=useCallback((msg,color="#10B981")=>{setToast({msg,color});setTimeout(()=>setToast(null),2600);},[]);
@@ -497,13 +497,25 @@ function App(){
 
   // TRANSFER
   const blankTr={desc:"",amount:"",fromAccountId:accs[0]?.id||"",toAccountId:accs[1]?.id||accs[0]?.id||"",date:TODAY,status:"paid"};
-  useEffect(()=>{if(accs.length>=2) setTrForm(f=>({...f,fromAccountId:accs[0]?.id||"",toAccountId:accs[1]?.id||""}));},[]);
+  useEffect(()=>{
+    if((accs||[]).length>=2){
+      setTrForm(f=>({
+        ...f,
+        fromAccountId:(accs.some(a=>a.id===f.fromAccountId)?f.fromAccountId:accs[0]?.id)||"",
+        toAccountId:(accs.some(a=>a.id===f.toAccountId && a.id!==((accs.some(x=>x.id===f.fromAccountId)?f.fromAccountId:accs[0]?.id)||""))?f.toAccountId:accs.find(a=>a.id!==((accs.some(x=>x.id===f.fromAccountId)?f.fromAccountId:accs[0]?.id)||""))?.id)||"",
+      }));
+    } else {
+      setTrForm(f=>({...f,fromAccountId:accs[0]?.id||"",toAccountId:""}));
+    }
+  },[accs]);
 
   const addTransfer=()=>{
-    if(!trForm.amount||parseFloat(trForm.amount)<=0)return;
+    if((accs||[]).length<2){toast_("Cadastre ao menos duas contas para transferir","#EF4444");return;}
+    if(!trForm.amount||parseFloat(trForm.amount)<=0){toast_("Informe um valor válido","#EF4444");return;}
+    if(!trForm.fromAccountId||!trForm.toAccountId){toast_("Selecione as contas de origem e destino","#EF4444");return;}
     if(trForm.fromAccountId===trForm.toAccountId){toast_(T.sameAccountErr,"#EF4444");return;}
     const amt=parseFloat(trForm.amount);
-    const desc=trForm.desc.trim()||"Transferência";
+    const desc=trForm.desc.trim()||(T.transferL||"Transferência").replace(/^🔄\s*/,"");
     const fromAcc=(accs||[]).find(a=>a.id===trForm.fromAccountId);
     const toAcc=(accs||[]).find(a=>a.id===trForm.toAccountId);
     const pairId=uid();
@@ -517,8 +529,8 @@ function App(){
     toast_(T.transferAdded);
   };
 
-  const markPaid=id=>{setTxs(p=>p.map(t=>t.id===id?{...t,status:"paid"}:t));toast_(T.paidOk);};
-  const delTx  =id=>{setTxs(p=>p.filter(t=>t.id!==id));setModal(null);toast_(T.removed,"#EF4444");};
+  const markPaid=id=>{setTxs(p=>{const tx=p.find(t=>t.id===id);if(!tx)return p;const pairId=tx.transferPairId;return p.map(t=>t.id===id || (pairId && t.transferPairId===pairId)?{...t,status:"paid"}:t);});toast_(T.paidOk);};
+  const delTx  =id=>{setTxs(p=>{const tx=p.find(t=>t.id===id);if(!tx)return p;const pairId=tx.transferPairId;return p.filter(t=>!(t.id===id || (pairId && t.transferPairId===pairId)));});setModal(null);toast_(T.removed,"#EF4444");};
 
   // ACCOUNT
   const blankA={name:"",type:"checking",color:"#7C6FFF",icon:"🏦",openingBalance:"",includeInTotal:true};
@@ -545,6 +557,7 @@ function App(){
   };
   const deleteCat=(catId)=>{
     setCustomCats(p=>(p||[]).filter(c=>c.id!==catId));
+    setTxs(p=>(p||[]).map(t=>t.cat===catId?{...t,cat:"other"}:t));
     toast_(T.catDeleted,"#EF4444");
   };
   const renameCat=(catId)=>{
@@ -553,6 +566,14 @@ function App(){
     setCatEditId(null);setCatEditName("");
     toast_(T.catRenamed);
   };
+
+  useEffect(()=>{
+    if(!formCats.length) return;
+    const currentValid=formCats.some(c=>c.id===form.cat);
+    if(!currentValid){
+      setForm(f=>({...f,cat:formCats[0].id}));
+    }
+  },[form.type,allCats]);
 
   // PIN
   const handlePinKey=d=>{if(pinStep===1){const n=pin1+d;setPin1(n);if(n.length===4){setPinStep(2);setPin2("");}}else{const n=pin2+d;setPin2(n);if(n.length===4){if(n===pin1){localStorage.setItem("fr4_pin",n);setUser(p=>({...p,pinEnabled:true}));setShowPin(false);setPinStep(1);setPin1("");setPin2("");toast_(T.pinSaved);}else{toast_(T.pinMismatch,"#EF4444");setPinStep(1);setPin1("");setPin2("");}}}};
@@ -712,7 +733,7 @@ function App(){
           <div className="fi">
             <h2 style={{fontSize:19,fontWeight:800,padding:"12px 0 10px"}}>{T.alertsTitle}</h2>
             {overdue.length===0&&dueSoon.length===0&&pending.length===0?(<div style={{textAlign:"center",padding:"55px 0",color:"#475569"}}><div style={{fontSize:46,marginBottom:12}}>🎉</div><p style={{fontSize:16,fontWeight:700}}>{T.allGood}</p><p style={{fontSize:12,marginTop:5}}>{T.noPending}</p></div>):(
-              <><{overdue.length>0&&<Section title={T.overdue} color="#EF4444" items={overdue} accs={accs} onPay={markPaid} T={T} fmtC={fmtC} cats={allCats} lang={userCfg.lang}/>}
+              <>{overdue.length>0&&<Section title={T.overdue} color="#EF4444" items={overdue} accs={accs} onPay={markPaid} T={T} fmtC={fmtC} cats={allCats} lang={userCfg.lang}/>}
                 {dueSoon.length>0&&<Section title={T.dueSoon} color="#F59E0B" items={dueSoon} accs={accs} onPay={markPaid} T={T} fmtC={fmtC} cats={allCats} lang={userCfg.lang}/>}
                 {pending.filter(t=>ddiff(t.dueDate)>3).length>0&&<Section title={T.upcoming} color="#64748B" items={pending.filter(t=>ddiff(t.dueDate)>3)} accs={accs} onPay={markPaid} T={T} fmtC={fmtC} cats={allCats} lang={userCfg.lang}/>}
               </>
@@ -874,7 +895,7 @@ function App(){
 
       {/* BOTTOM NAV */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:"#080C18",borderTop:"1px solid #1A2640",display:"flex",zIndex:40,paddingBottom:"max(env(safe-area-inset-bottom,0px),5px)"}}>
-        {[["home","🏠",T.home],["transactions","📋",T.extract],["alerts","🔔"+(overdue.length+dueSoon.length>0?" "+(overdue.length+dueSoon.length):""),T.alerts],["settings","⚙️",T.settings],["user","👤",T.user]].map(([id,icon,label])=>(<button key={id} className={`tab ${tab===id?"on":""}`} type="button" onClick={()=>switchTab(id)} onTouchEnd={()=>switchTab(id)}><span style={{fontSize:19}}>{icon}</span><span style={{fontSize:8}}>{label}</span></button>))}
+        {[["home","🏠",T.home],["transactions","📋",T.extract],["alerts","🔔"+(overdue.length+dueSoon.length>0?" "+(overdue.length+dueSoon.length):""),T.alerts],["settings","⚙️",T.settings],["user","👤",T.user]].map(([id,icon,label])=>(<button key={id} className={`tab ${tab===id?"on":""}`} type="button" onClick={()=>switchTab(id)} style={{touchAction:"manipulation"}}><span style={{fontSize:19}}>{icon}</span><span style={{fontSize:8}}>{label}</span></button>))}
       </div>
 
       {/* ══════════ MODALS ══════════ */}
@@ -886,7 +907,7 @@ function App(){
           {/* Type selector including Transfer */}
           <div style={{display:"flex",gap:6,marginBottom:12}}>
             {[[T.expenseBtn,"expense","#EF4444"],[T.incomeBtn,"income","#34D399"],[T.transferBtn,"transfer","#87CEEB"]].map(([l,v,c])=>(
-              <button key={v} onClick={()=>{if(v==="transfer"){setModal("addTransfer");}else setForm(f=>({...f,type:v}));}} style={{flex:1,padding:"9px 4px",borderRadius:11,border:`1.5px solid ${form.type===v&&v!=="transfer"?c:"#1F2D45"}`,background:form.type===v&&v!=="transfer"?c+"22":"transparent",color:form.type===v&&v!=="transfer"?c:"#64748B",fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
+              <button key={v} onClick={()=>{if(v==="transfer"){if((accs||[]).length<2){toast_("Cadastre ao menos duas contas para transferir","#EF4444");return;} setModal("addTransfer");}else setForm(f=>({...f,type:v}));}} style={{flex:1,padding:"9px 4px",borderRadius:11,border:`1.5px solid ${form.type===v&&v!=="transfer"?c:"#1F2D45"}`,background:form.type===v&&v!=="transfer"?c+"22":"transparent",color:form.type===v&&v!=="transfer"?c:"#64748B",fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
             ))}
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:11}}>
