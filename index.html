@@ -844,6 +844,7 @@ function App(){
 
   // ── TOAST ──
   const toast_=useCallback((msg,color="#10B981")=>{setToast({msg,color});setTimeout(()=>setToast(null),2600);},[]);
+  const switchTab=useCallback((next)=>{setModal(null);setTab(next);requestAnimationFrame(()=>{try{document.querySelector(".scr")?.scrollTo({top:0,behavior:"instant"});}catch{};window.scrollTo?.(0,0);});},[]);
 
   // ── GOOGLE DRIVE (PRIVATE / SINGLE USER) ──
   const buildBackupPayload = useCallback(()=>({
@@ -1332,7 +1333,7 @@ function App(){
               {(overdue.length>0?overdue:dueSoon).slice(0,3).map(t=>t.desc).join(" · ")}
             </p>
           </div>
-          <button onClick={()=>setTab("alerts")} style={{background:"none",border:"1px solid #1F2D45",
+          <button type="button" onClick={()=>switchTab("alerts")} onTouchEnd={()=>switchTab("alerts")} style={{background:"none",border:"1px solid #1F2D45",
             color:"#94A3B8",borderRadius:8,padding:"3px 8px",fontSize:9,cursor:"pointer",fontWeight:700,flexShrink:0}}>
             {T.payBtn==="PAGAR"?"VER":"SEE"}
           </button>
@@ -1744,7 +1745,7 @@ function App(){
           ["settings","⚙️",T.settings],
           ["user","👤",T.user],
         ].map(([id,icon,label])=>(
-          <button key={id} className={`tab ${tab===id?"on":""}`} onClick={()=>setTab(id)}>
+          <button key={id} className={`tab ${tab===id?"on":""}`} type="button" onClick={()=>switchTab(id)} onTouchEnd={()=>switchTab(id)}>
             <span style={{fontSize:19}}>{icon}</span>
             <span style={{fontSize:8}}>{label}</span>
           </button>
@@ -1753,14 +1754,7 @@ function App(){
 
       {/* ══════════ USER PANEL ══════════ */}
       {tab==="user"&&(
-        <div style={{position:"fixed",inset:0,background:"#080C18",zIndex:10,
-          overflowY:"auto",paddingBottom:80,maxWidth:430,margin:"0 auto"}}>
-          <div style={{padding:"max(env(safe-area-inset-top,0px),12px) 15px 0",
-            display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-            <div style={{display:"flex",alignItems:"center",gap:6}}><AppIcon size={22}/><span style={{fontSize:13,fontWeight:800}}>Finance Real</span></div>
-            <div/>
-          </div>
-          <div style={{padding:"0 13px"}}>
+        <div className="fi" style={{padding:"0 13px 82px",paddingTop:8}}>
             <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 0 16px"}}>
               <div style={{width:54,height:54,borderRadius:18,background:"linear-gradient(135deg,#6366F1,#4F46E5)",
                 display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>👤</div>
@@ -1891,7 +1885,7 @@ function App(){
                 <p style={{fontSize:11,color:"#64748B",lineHeight:1.6}}>{T.thankDesc}</p>
               </div>
             </div>
-          </div>
+
 
           {/* PIN SET OVERLAY */}
           {showPin&&(
