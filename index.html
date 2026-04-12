@@ -594,6 +594,7 @@ function App(){
   },[txs,currentYM,totAssets]);
 
 
+  const getMonBal=ym=>{
     const h=balH[ym];
     if(h?.adjusted&&h?.manual!==null) return h.manual;
     const [yy,mm]=ym.split("-").map(Number);
