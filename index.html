@@ -796,7 +796,7 @@ function App(){
       )}
 
       {/* CONTENT */}
-      <div className="scr" style={{flex:1,padding:"0 13px 82px",paddingTop:8}}>
+      <div className="scr" style={{flex:1,padding:"0 13px 82px",paddingTop:8,overflowX:"hidden"}}>
 
         {/* ═══ HOME ═══════════════════════════════════ */}
         {tab==="home"&&(
@@ -885,56 +885,53 @@ function App(){
             </div>
 
             {/* ── HISTÓRICO MENSAL ── */}
-            <div className="card" style={{marginBottom:11}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:showHist?10:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{background:"#0D1526",border:"1px solid #1A2640",borderRadius:20,padding:"14px 14px 6px",marginBottom:11,overflow:"hidden"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:showHist?10:4}}>
+                <div style={{display:"flex",alignItems:"center",gap:7}}>
                   <h3 style={{fontSize:13,fontWeight:800,letterSpacing:.3}}>{T.history}</h3>
                   {showHist&&(
                     <div style={{display:"flex",alignItems:"center",gap:2}}>
-                      <button onClick={()=>setSelYear(y=>y-1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:6,width:22,height:22,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>‹</button>
-                      <span style={{fontSize:11,fontWeight:800,color:"#818CF8",minWidth:34,textAlign:"center"}}>{selYear}</span>
-                      <button onClick={()=>setSelYear(y=>y+1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:6,width:22,height:22,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>›</button>
+                      <button onClick={()=>setSelYear(y=>y-1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:6,width:22,height:22,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+                      <span style={{fontSize:11,fontWeight:800,color:"#818CF8",minWidth:32,textAlign:"center"}}>{selYear}</span>
+                      <button onClick={()=>setSelYear(y=>y+1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:6,width:22,height:22,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
                     </div>
                   )}
                 </div>
-                <button onClick={()=>setShowHist(p=>!p)} style={{background:"none",border:"none",color:"#475569",fontSize:11,cursor:"pointer",fontWeight:700,padding:"2px 0"}}>{showHist?T.hide:T.show}</button>
+                <button onClick={()=>setShowHist(p=>!p)} style={{background:"none",border:"none",color:"#475569",fontSize:11,cursor:"pointer",fontWeight:700}}>{showHist?T.hide:T.show}</button>
               </div>
               {showHist&&(()=>{
                 const mx=Math.max(...histMons.map(m=>Math.abs(m.balance)),1);
                 return(
                   <div>
-                    {/* Gráfico de barras compacto com scroll */}
-                    <div style={{overflowX:"auto",marginBottom:10,paddingBottom:4}}>
-                      <div style={{display:"flex",gap:4,alignItems:"flex-end",height:72,minWidth:"100%",width:"max-content"}}>
-                        {histMons.map(m=>(
-                          <div key={m.ym} onClick={()=>setSelMon(m.ym)} style={{width:36,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer"}}>
-                            <p className="mono" style={{fontSize:8,color:m.isFuture?"#818CF8":m.balance>=0?"#34D399":"#F87171",fontWeight:600,lineHeight:1}}>{fmtS(m.balance)}</p>
-                            <div style={{width:"100%",height:48,display:"flex",alignItems:"flex-end"}}>
-                              <div style={{width:"100%",height:`${Math.max(Math.abs(m.balance)/mx*100,5)}%`,borderRadius:"3px 3px 0 0",transition:"height .4s",
-                                opacity:m.ym===selMon?1:.5,
-                                background:m.isFuture?"linear-gradient(180deg,#6366F1,#4338CA)":`linear-gradient(180deg,${m.balance>=0?"#34D399":"#F87171"},${m.balance>=0?"#059669":"#DC2626"})`,
-                                border:m.isFuture?"1px dashed #6366F150":m.ym===selMon?"2px solid #ffffff30":"none",
-                                boxSizing:"border-box"
-                              }}/>
-                            </div>
-                            <p style={{fontSize:8,color:m.ym===selMon?"#818CF8":m.isFuture?"#6366F170":"#374151",fontWeight:m.ym===selMon?800:700,lineHeight:1}}>{m.label.slice(0,3)}</p>
+                    {/* Gráfico: 12 barras com flex, sem overflow */}
+                    <div style={{display:"flex",gap:2,alignItems:"flex-end",height:76,marginBottom:8,width:"100%"}}>
+                      {histMons.map(m=>(
+                        <div key={m.ym} onClick={()=>setSelMon(m.ym)} style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",alignItems:"center",gap:1,cursor:"pointer"}}>
+                          <div style={{width:"100%",height:48,display:"flex",alignItems:"flex-end"}}>
+                            <div style={{width:"100%",height:`${Math.max(Math.abs(m.balance)/mx*100,5)}%`,borderRadius:"2px 2px 0 0",transition:"height .4s",
+                              opacity:m.ym===selMon?1:.5,
+                              background:m.isFuture?"linear-gradient(180deg,#6366F1,#4338CA)":`linear-gradient(180deg,${m.balance>=0?"#34D399":"#F87171"},${m.balance>=0?"#059669":"#DC2626"})`,
+                              outline:m.ym===selMon?"2px solid #6366F180":"none",
+                              boxSizing:"border-box"
+                            }}/>
                           </div>
-                        ))}
-                      </div>
+                          <p style={{fontSize:7,color:m.ym===selMon?"#818CF8":m.isFuture?"#6366F160":"#374151",fontWeight:m.ym===selMon?800:600,lineHeight:1,textAlign:"center",width:"100%",overflow:"hidden"}}>{m.label.slice(0,3)}</p>
+                        </div>
+                      ))}
                     </div>
                     {/* Lista de meses */}
                     {histMons.map(m=>(
-                      <div key={m.ym} onClick={()=>setSelMon(m.ym)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #0D1526",opacity:m.isFuture?0.7:1,cursor:"pointer",borderRadius:4}}>
-                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                          <div style={{width:3,height:16,borderRadius:2,background:m.ym===selMon?"#6366F1":m.isFuture?"#6366F140":"#1A2640",flexShrink:0}}/>
-                          <span style={{fontSize:12,fontWeight:m.ym===selMon?800:600,color:m.ym===selMon?"#E8EDF5":m.isFuture?"#6366F190":"#64748B"}}>{m.label}</span>
-                          {m.isFuture&&<span className="pill" style={{background:"#6366F115",color:"#818CF8",border:"1px solid #6366F130",fontSize:8}}>▷</span>}
-                          {m.adjusted&&<span className="pill" style={{background:"#F59E0B12",color:"#F59E0B",border:"1px solid #F59E0B30",fontSize:8}}>✏️</span>}
+                      <div key={m.ym} onClick={()=>setSelMon(m.ym)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderTop:"1px solid #111827",opacity:m.isFuture?0.7:1,cursor:"pointer"}}>
+                        <div style={{display:"flex",gap:6,alignItems:"center",minWidth:0,flex:1}}>
+                          <div style={{width:3,height:14,borderRadius:2,background:m.ym===selMon?"#6366F1":m.isFuture?"#6366F140":"#1A2640",flexShrink:0}}/>
+                          <span style={{fontSize:12,fontWeight:m.ym===selMon?800:600,color:m.ym===selMon?"#E8EDF5":m.isFuture?"#6366F190":"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.label}</span>
+                          {m.isFuture&&<span className="pill" style={{background:"#6366F115",color:"#818CF8",border:"1px solid #6366F130",fontSize:8,flexShrink:0}}>▷</span>}
+                          {m.adjusted&&<span className="pill" style={{background:"#F59E0B12",color:"#F59E0B",border:"1px solid #F59E0B30",fontSize:8,flexShrink:0}}>✏️</span>}
                         </div>
-                        <div style={{display:"flex",gap:5,alignItems:"center"}}>
-                          <span className="mono" style={{fontSize:13,fontWeight:700,color:m.isFuture?"#818CF8":m.balance>=0?"#34D399":"#F87171"}}>{fmtC(m.balance)}</span>
-                          <button onClick={e=>{e.stopPropagation();setEditBM(m.ym);setTmpBal(String(m.balance));setModal("balAdj");}} style={{background:"#111827",border:"none",color:"#475569",borderRadius:6,padding:"3px 6px",fontSize:11,cursor:"pointer"}}>✏️</button>
-                          {m.adjusted&&<button onClick={e=>{e.stopPropagation();rmBal(m.ym);}} style={{background:"#111827",border:"none",color:"#EF4444",borderRadius:6,padding:"3px 6px",fontSize:11,cursor:"pointer"}}>↺</button>}
+                        <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+                          <span className="mono" style={{fontSize:12,fontWeight:700,color:m.isFuture?"#818CF8":m.balance>=0?"#34D399":"#F87171"}}>{fmtC(m.balance)}</span>
+                          <button onClick={e=>{e.stopPropagation();setEditBM(m.ym);setTmpBal(String(m.balance));setModal("balAdj");}} style={{background:"#111827",border:"none",color:"#475569",borderRadius:6,padding:"3px 5px",fontSize:10,cursor:"pointer",flexShrink:0}}>✏️</button>
+                          {m.adjusted&&<button onClick={e=>{e.stopPropagation();rmBal(m.ym);}} style={{background:"#111827",border:"none",color:"#EF4444",borderRadius:6,padding:"3px 5px",fontSize:10,cursor:"pointer",flexShrink:0}}>↺</button>}
                         </div>
                       </div>
                     ))}
