@@ -337,19 +337,25 @@ const INIT_TX=[
 ];
 const INIT_HIST={"2026-02":{adjusted:false,manual:null},"2026-03":{adjusted:false,manual:null},"2026-04":{adjusted:false,manual:null}};
 
-// Dynamic months: 3 past + current + 3 future from TODAY
-function buildAllMonths(todayStr){
-  const [y,m]=todayStr.split("-").map(Number);
+// Build months for a given year
+function buildMonthsForYear(year){
   const months=[];
-  for(let i=-3;i<=3;i++){
-    let mm=m+i, yy=y;
-    if(mm<1){mm+=12;yy--;}
-    if(mm>12){mm-=12;yy++;}
-    months.push(`${yy}-${String(mm).padStart(2,"0")}`);
-  }
+  for(let m=1;m<=12;m++) months.push(`${year}-${String(m).padStart(2,"0")}`);
   return months;
 }
-const ALL_MONTHS=buildAllMonths(TODAY);
+// Detect the furthest year that has transactions (for installments spanning years)
+function detectMaxYear(txs){
+  const todayYear=new Date(TODAY+"T12:00:00").getFullYear();
+  let maxYear=todayYear;
+  (txs||[]).forEach(t=>{
+    const y=parseInt((t.date||"").slice(0,4));
+    if(!isNaN(y)&&y>maxYear) maxYear=y;
+    const dy=parseInt((t.dueDate||"").slice(0,4));
+    if(!isNaN(dy)&&dy>maxYear) maxYear=dy;
+  });
+  return maxYear;
+}
+const TODAY_YEAR=new Date(TODAY+"T12:00:00").getFullYear();
 
 function useLS(key,init){
   const [v,setV]=useState(()=>{try{const s=localStorage.getItem("fr4_"+key);return s?JSON.parse(s):init;}catch{return init;}});
@@ -400,6 +406,7 @@ function App(){
   const [modal,     setModal]    = useState(null);
   const [toast,     setToast]    = useState(null);
   const [selMon,    setSelMon]   = useState("2026-04");
+  const [selYear,   setSelYear]  = useState(TODAY_YEAR);
   const [fAcc,      setFAcc]     = useState("all");
   const [fStatus,   setFStatus]  = useState("all");
   const [detTx,     setDetTx]    = useState(null);
@@ -423,7 +430,11 @@ function App(){
   const [restoreConfirm, setRestoreConfirm] = useState(null);
   const [pixModal,  setPixModal] = useState(null);
 
-  // Category management state
+  // Sync selYear when selMon changes to a different year
+  useEffect(()=>{
+    const y=parseInt(selMon.slice(0,4));
+    if(!isNaN(y)&&y!==selYear) setSelYear(y);
+  },[selMon]);
   const [catEditId, setCatEditId] = useState(null);
   const [catForm, setCatForm] = useState({name:"",icon:"📦",color:"#F0A500",txType:"both"});
   const [catEditName, setCatEditName] = useState("");
@@ -518,6 +529,8 @@ function App(){
     }
   };
   const currentYM=TODAY.slice(0,7);
+  const maxTxYear=useMemo(()=>detectMaxYear(txs),[txs]);
+  const ALL_MONTHS=useMemo(()=>buildMonthsForYear(selYear),[selYear]);
   const histMons=ALL_MONTHS.map(ym=>({
     ym,
     label:MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4),
@@ -795,11 +808,20 @@ function App(){
               </div>
               <button onClick={()=>setModal("backup")} style={{background:"#0D1526",border:"1px solid #1A2640",borderRadius:13,padding:"7px 10px",color:"#64748B",fontSize:10,cursor:"pointer",fontWeight:700,display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><span style={{fontSize:18}}>☁️</span><span>BKP</span></button>
             </div>
-            <div style={{display:"flex",gap:5,marginBottom:9,overflowX:"auto",paddingBottom:2,flexShrink:0}}>
-              {ALL_MONTHS.map(ym=>{const isFut=ym>currentYM;return(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"5px 12px",borderRadius:20,border:`1.5px ${isFut?"dashed":"solid"}`,whiteSpace:"nowrap",borderColor:selMon===ym?"#6366F1":isFut?"#2A3A55":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":isFut?"#475569":"#475569",fontSize:11,fontWeight:700,cursor:"pointer",position:"relative"}}>
-                {MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4)}
-                {isFut&&<span style={{fontSize:8,marginLeft:3,color:"#6366F180"}}>▷</span>}
-              </button>);})}
+            <div style={{marginBottom:9,flexShrink:0}}>
+              {/* Year selector */}
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:7}}>
+                <button onClick={()=>{const y=selYear-1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"#0D1526",border:"1px solid #1A2640",color:"#94A3B8",borderRadius:9,width:28,height:28,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}>‹</button>
+                <div style={{flex:1,textAlign:"center",fontSize:13,fontWeight:800,color:"#818CF8",letterSpacing:1}}>{selYear}</div>
+                <button onClick={()=>{const y=selYear+1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"#0D1526",border:"1px solid #1A2640",color:"#94A3B8",borderRadius:9,width:28,height:28,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}>›</button>
+              </div>
+              {/* Month grid */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5}}>
+                {ALL_MONTHS.map(ym=>{const isFut=ym>currentYM;const hasTx=txs.some(t=>t.date.startsWith(ym));return(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"6px 4px",borderRadius:12,border:`1.5px ${isFut?"dashed":"solid"}`,borderColor:selMon===ym?"#6366F1":hasTx?"#2A3A55":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":hasTx?"#64748B":"#384455",fontSize:11,fontWeight:700,cursor:"pointer",position:"relative",textAlign:"center"}}>
+                  {MONTHS_BASE[parseInt(ym.split("-")[1])-1]}
+                  {hasTx&&selMon!==ym&&<span style={{display:"block",width:4,height:4,borderRadius:"50%",background:"#6366F180",margin:"2px auto 0"}}/>}
+                </button>);})}
+              </div>
             </div>
             <div style={{background:"linear-gradient(135deg,#0D1930,#0A1020)",border:`1px solid ${selMon>currentYM?"#6366F140":"#1A2640"}`,borderRadius:22,padding:17,marginBottom:11,position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:-30,right:-30,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,#6366F118,transparent)",pointerEvents:"none"}}/>
@@ -830,7 +852,10 @@ function App(){
             <div className="card" style={{marginBottom:11}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:showHist?11:0}}>
                 <h3 style={{fontSize:14,fontWeight:800}}>{T.history}</h3>
-                <button onClick={()=>setShowHist(p=>!p)} style={{background:"none",border:"none",color:"#475569",fontSize:11,cursor:"pointer",fontWeight:700}}>{showHist?T.hide:T.show}</button>
+                <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                  {showHist&&<><button onClick={()=>setSelYear(y=>y-1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:7,width:24,height:24,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button><span style={{fontSize:11,fontWeight:800,color:"#818CF8",minWidth:36,textAlign:"center"}}>{selYear}</span><button onClick={()=>setSelYear(y=>y+1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:7,width:24,height:24,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>›</button></>}
+                  <button onClick={()=>setShowHist(p=>!p)} style={{background:"none",border:"none",color:"#475569",fontSize:11,cursor:"pointer",fontWeight:700}}>{showHist?T.hide:T.show}</button>
+                </div>
               </div>
               {showHist&&(()=>{
                 const mx=Math.max(...histMons.map(m=>Math.abs(m.balance)),1);
@@ -880,10 +905,20 @@ function App(){
           <div className="fi">
             <h2 style={{fontSize:19,fontWeight:800,padding:"12px 0 10px"}}>{T.transactions}</h2>
             <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:11}}>
-              <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2}}>
-                {ALL_MONTHS.map(ym=>{const isFut=ym>currentYM;return(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"4px 11px",borderRadius:20,border:`1.5px ${isFut?"dashed":"solid"}`,whiteSpace:"nowrap",borderColor:selMon===ym?"#6366F1":isFut?"#2A3A55":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":isFut?"#475569":"#475569",fontSize:10,fontWeight:700,cursor:"pointer"}}>
-                  {MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4)}{isFut&&<span style={{fontSize:8,marginLeft:2,color:"#6366F180"}}>▷</span>}
-                </button>);})}
+              <div style={{marginBottom:2}}>
+                {/* Year selector */}
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                  <button onClick={()=>{const y=selYear-1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"#0D1526",border:"1px solid #1A2640",color:"#94A3B8",borderRadius:9,width:28,height:28,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}>‹</button>
+                  <div style={{flex:1,textAlign:"center",fontSize:13,fontWeight:800,color:"#818CF8",letterSpacing:1}}>{selYear}</div>
+                  <button onClick={()=>{const y=selYear+1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"#0D1526",border:"1px solid #1A2640",color:"#94A3B8",borderRadius:9,width:28,height:28,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}>›</button>
+                </div>
+                {/* Month grid */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5}}>
+                  {ALL_MONTHS.map(ym=>{const isFut=ym>currentYM;const hasTx=txs.some(t=>t.date.startsWith(ym));return(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"6px 4px",borderRadius:12,border:`1.5px ${isFut?"dashed":"solid"}`,borderColor:selMon===ym?"#6366F1":hasTx?"#2A3A55":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":hasTx?"#64748B":"#384455",fontSize:11,fontWeight:700,cursor:"pointer",textAlign:"center"}}>
+                    {MONTHS_BASE[parseInt(ym.split("-")[1])-1]}
+                    {hasTx&&selMon!==ym&&<span style={{display:"block",width:4,height:4,borderRadius:"50%",background:"#6366F180",margin:"2px auto 0"}}/>}
+                  </button>);})}
+                </div>
               </div>
               <div className="seg">
                 {[[T.all,"all"],[T.pending,"pending"],[T.paid,"paid"]].map(([l,v])=>(<button key={v} className={`seg-b ${fStatus===v?"on":"off"}`} onClick={()=>setFStatus(v)}>{l}</button>))}
