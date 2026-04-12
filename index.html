@@ -801,94 +801,140 @@ function App(){
         {/* ═══ HOME ═══════════════════════════════════ */}
         {tab==="home"&&(
           <div className="fi">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10}}>
+
+            {/* ── PATRIMÔNIO TOTAL ── */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0 8px"}}>
               <div>
-                <p style={{fontSize:11,color:"#64748B"}}>{T.totalAssets}</p>
-                <p className="mono" style={{fontSize:29,fontWeight:700,letterSpacing:-1,color:totAssets>=0?"#34D399":"#F87171"}}>{fmtC(totAssets)}</p>
+                <p style={{fontSize:10,color:"#475569",fontWeight:700,letterSpacing:.8,textTransform:"uppercase"}}>{T.totalAssets}</p>
+                <p className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:-1,lineHeight:1.1,color:totAssets>=0?"#34D399":"#F87171"}}>{fmtC(totAssets)}</p>
               </div>
-              <button onClick={()=>setModal("backup")} style={{background:"#0D1526",border:"1px solid #1A2640",borderRadius:13,padding:"7px 10px",color:"#64748B",fontSize:10,cursor:"pointer",fontWeight:700,display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><span style={{fontSize:18}}>☁️</span><span>BKP</span></button>
+              <button onClick={()=>setModal("backup")} style={{background:"#0D1526",border:"1px solid #1A2640",borderRadius:12,padding:"8px 11px",color:"#64748B",fontSize:10,cursor:"pointer",fontWeight:700,display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}><span style={{fontSize:17}}>☁️</span><span style={{letterSpacing:.5}}>BKP</span></button>
             </div>
-            <div style={{marginBottom:9,flexShrink:0}}>
-              {/* Year selector */}
-              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:7}}>
-                <button onClick={()=>{const y=selYear-1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"#0D1526",border:"1px solid #1A2640",color:"#94A3B8",borderRadius:9,width:28,height:28,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}>‹</button>
+
+            {/* ── SELETOR ANO + MÊS (scroll horizontal) ── */}
+            <div style={{marginBottom:10,flexShrink:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:0,background:"#0D1526",border:"1px solid #1A2640",borderRadius:14,padding:"3px 4px",marginBottom:7}}>
+                <button onClick={()=>{const y=selYear-1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"none",border:"none",color:"#64748B",width:32,height:30,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0,borderRadius:10}}>‹</button>
                 <div style={{flex:1,textAlign:"center",fontSize:13,fontWeight:800,color:"#818CF8",letterSpacing:1}}>{selYear}</div>
-                <button onClick={()=>{const y=selYear+1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"#0D1526",border:"1px solid #1A2640",color:"#94A3B8",borderRadius:9,width:28,height:28,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}>›</button>
+                <button onClick={()=>{const y=selYear+1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"none",border:"none",color:"#64748B",width:32,height:30,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0,borderRadius:10}}>›</button>
               </div>
-              {/* Month grid */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5}}>
-                {ALL_MONTHS.map(ym=>{const isFut=ym>currentYM;const hasTx=txs.some(t=>t.date.startsWith(ym));return(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"6px 4px",borderRadius:12,border:`1.5px ${isFut?"dashed":"solid"}`,borderColor:selMon===ym?"#6366F1":hasTx?"#2A3A55":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":hasTx?"#64748B":"#384455",fontSize:11,fontWeight:700,cursor:"pointer",position:"relative",textAlign:"center"}}>
-                  {MONTHS_BASE[parseInt(ym.split("-")[1])-1]}
-                  {hasTx&&selMon!==ym&&<span style={{display:"block",width:4,height:4,borderRadius:"50%",background:"#6366F180",margin:"2px auto 0"}}/>}
-                </button>);})}
+              <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:3}}>
+                {ALL_MONTHS.map(ym=>{
+                  const isFut=ym>currentYM;
+                  const isNow=ym===currentYM;
+                  const isSel=ym===selMon;
+                  const hasTx=txs.some(t=>t.date.startsWith(ym));
+                  return(<button key={ym} onClick={()=>setSelMon(ym)} style={{
+                    flexShrink:0,padding:"5px 10px",borderRadius:20,
+                    border:`1.5px ${isFut?"dashed":"solid"}`,
+                    borderColor:isSel?"#6366F1":isNow?"#2A3A70":"#1A2640",
+                    background:isSel?"#6366F125":isNow&&!isSel?"#1A2640":"transparent",
+                    color:isSel?"#818CF8":isNow?"#94A3B8":hasTx?"#64748B":"#2E3D55",
+                    fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",
+                    position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:2
+                  }}>
+                    {MONTHS_BASE[parseInt(ym.split("-")[1])-1]}
+                    {isNow&&!isSel&&<span style={{width:4,height:4,borderRadius:"50%",background:"#6366F160",display:"block"}}/>}
+                    {hasTx&&!isNow&&!isSel&&<span style={{width:4,height:4,borderRadius:"50%",background:"#2A3A55",display:"block"}}/>}
+                    {isSel&&<span style={{width:4,height:4,borderRadius:"50%",background:"#6366F1",display:"block"}}/>}
+                  </button>);
+                })}
               </div>
             </div>
-            <div style={{background:"linear-gradient(135deg,#0D1930,#0A1020)",border:`1px solid ${selMon>currentYM?"#6366F140":"#1A2640"}`,borderRadius:22,padding:17,marginBottom:11,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-30,right:-30,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,#6366F118,transparent)",pointerEvents:"none"}}/>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-                <p style={{fontSize:11,color:"#64748B",fontWeight:700,letterSpacing:.7}}>{MONTHS_BASE[parseInt(selMon.split("-")[1])-1].toUpperCase()}/{selMon.slice(2,4)} · {selMon>currentYM?"PROJEÇÃO":T.result}</p>
-                <div style={{display:"flex",gap:5}}>
-                  {selMon>currentYM&&<span className="pill" style={{background:"#6366F120",color:"#818CF8",border:"1px solid #6366F140"}}>▷ Futuro</span>}
-                  {balH[selMon]?.adjusted&&<span className="pill" style={{background:"#F59E0B20",color:"#F59E0B",border:"1px solid #F59E0B40"}}>✏️</span>}
+
+            {/* ── CARD RESULTADO DO MÊS ── */}
+            <div style={{background:"linear-gradient(135deg,#0D1930,#0A1020)",border:`1px solid ${selMon>currentYM?"#6366F140":"#1A2640"}`,borderRadius:20,padding:"14px 16px",marginBottom:11,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-24,right:-24,width:100,height:100,borderRadius:"50%",background:"radial-gradient(circle,#6366F118,transparent)",pointerEvents:"none"}}/>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <p style={{fontSize:10,color:"#475569",fontWeight:700,letterSpacing:.8,textTransform:"uppercase"}}>
+                    {MONTHS_BASE[parseInt(selMon.split("-")[1])-1]} {selMon.slice(0,4)} · {selMon>currentYM?"PROJEÇÃO":T.result}
+                  </p>
+                  <p className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:-1,lineHeight:1.15,marginTop:3,color:selMon>currentYM?"#818CF8":getMonBal(selMon)>=0?"#34D399":"#F87171"}}>{fmtC(getMonBal(selMon))}</p>
+                  {selMon>currentYM&&<p style={{fontSize:9,color:"#475569",marginTop:2}}>Baseado em recorrentes ativas</p>}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",flexShrink:0}}>
+                  {selMon>currentYM&&<span className="pill" style={{background:"#6366F120",color:"#818CF8",border:"1px solid #6366F140",fontSize:9}}>▷ Futuro</span>}
+                  {balH[selMon]?.adjusted&&<span className="pill" style={{background:"#F59E0B20",color:"#F59E0B",border:"1px solid #F59E0B40",fontSize:9}}>✏️ Ajust.</span>}
+                  <button onClick={()=>{setEditBM(selMon);setTmpBal(String(getMonBal(selMon)));setModal("balAdj");}} style={{background:"none",border:"1px dashed #2A3A55",color:"#475569",borderRadius:8,padding:"3px 8px",fontSize:9,cursor:"pointer",fontWeight:700}}>✏️</button>
                 </div>
               </div>
-              <p className="mono" style={{fontSize:31,fontWeight:700,letterSpacing:-1,color:selMon>currentYM?"#818CF8":getMonBal(selMon)>=0?"#34D399":"#F87171"}}>{fmtC(getMonBal(selMon))}</p>
-              {selMon>currentYM&&<p style={{fontSize:10,color:"#475569",marginTop:3}}>Baseado em recorrentes ativas</p>}
-              <div style={{display:"flex",gap:6,marginTop:12}}>
-                {selMon>currentYM
-                  ? [[T.income,getMonBal(selMon)>0?getMonBal(selMon):0,"#818CF8"],[T.expenses,getMonBal(selMon)<0?Math.abs(getMonBal(selMon)):0,"#818CF8"],[T.toPay,totPend,"#F59E0B"]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:"#0D1220",borderRadius:11,padding:"8px 9px"}}><p style={{fontSize:9,color:"#64748B",marginBottom:2,fontWeight:700}}>↕ {l}</p><p className="mono" style={{fontSize:13,fontWeight:700,color:c}}>{fmtC(v)}</p></div>))
-                  : [[T.income,income,"#34D399"],[T.expenses,expenses,"#F87171"],[T.toPay,totPend,"#F59E0B"]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:"#0D1220",borderRadius:11,padding:"8px 9px"}}><p style={{fontSize:9,color:"#64748B",marginBottom:2,fontWeight:700}}>↕ {l}</p><p className="mono" style={{fontSize:13,fontWeight:700,color:c}}>{fmtC(v)}</p></div>))
-                }
+              <div style={{display:"flex",gap:6}}>
+                {(selMon>currentYM
+                  ? [[T.income,getMonBal(selMon)>0?getMonBal(selMon):0,"#818CF8"],[T.expenses,getMonBal(selMon)<0?Math.abs(getMonBal(selMon)):0,"#818CF8"],[T.toPay,totPend,"#F59E0B"]]
+                  : [[T.income,income,"#34D399"],[T.expenses,expenses,"#F87171"],[T.toPay,totPend,"#F59E0B"]]
+                ).map(([l,v,c])=>(<div key={l} style={{flex:1,background:"#080C1890",borderRadius:10,padding:"7px 8px"}}><p style={{fontSize:9,color:"#475569",marginBottom:2,fontWeight:700,letterSpacing:.4}}>{l}</p><p className="mono" style={{fontSize:12,fontWeight:700,color:c}}>{fmtC(v)}</p></div>))}
               </div>
-              <button onClick={()=>{setEditBM(selMon);setTmpBal(String(getMonBal(selMon)));setModal("balAdj");}} style={{marginTop:10,background:"none",border:"1px dashed #2A3A55",color:"#475569",borderRadius:9,padding:"5px 12px",fontSize:10,cursor:"pointer",fontWeight:700,display:"flex",alignItems:"center",gap:4}}>{T.adjustMonthBtn}</button>
             </div>
+
+            {/* ── CONTAS & CARTÕES ── */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
-              <h3 style={{fontSize:14,fontWeight:800}}>{T.accounts}</h3>
-              <button onClick={()=>setModal("addAcc")} style={{background:"#6366F120",border:"1px solid #6366F140",color:"#818CF8",borderRadius:9,padding:"3px 9px",fontSize:10,cursor:"pointer",fontWeight:700}}>{T.newAccount}</button>
+              <h3 style={{fontSize:13,fontWeight:800,letterSpacing:.3}}>{T.accounts}</h3>
+              <button onClick={()=>setModal("addAcc")} style={{background:"#6366F115",border:"1px solid #6366F130",color:"#818CF8",borderRadius:9,padding:"3px 10px",fontSize:10,cursor:"pointer",fontWeight:700}}>{T.newAccount}</button>
             </div>
-            <div style={{display:"flex",gap:7,overflowX:"auto",paddingBottom:6,marginBottom:11}}>
-              {accs.map(a=>(<div key={a.id} style={{minWidth:135,background:"#0D1526",border:`1px solid ${a.color}40`,borderRadius:17,padding:"12px 13px",flexShrink:0,position:"relative",overflow:"hidden"}}><div style={{position:"absolute",top:-14,right:-14,width:60,height:60,borderRadius:"50%",background:`radial-gradient(circle,${a.color}25,transparent)`,pointerEvents:"none"}}/><div style={{fontSize:20,marginBottom:5}}>{a.icon}</div><p style={{fontSize:11,color:"#64748B",fontWeight:700}}>{a.name}</p><p className="mono" style={{fontSize:15,fontWeight:700,marginTop:2,color:getAccBal(a.id)>=0?a.color:"#F87171"}}>{fmtC(getAccBal(a.id))}</p><span style={{fontSize:9,color:"#475569",fontWeight:700}}>{typeLabel(a.type).split(" ").pop()}</span></div>))}
-            </div>
-            <div className="card" style={{marginBottom:11}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:showHist?11:0}}>
-                <h3 style={{fontSize:14,fontWeight:800}}>{T.history}</h3>
-                <div style={{display:"flex",gap:5,alignItems:"center"}}>
-                  {showHist&&<><button onClick={()=>setSelYear(y=>y-1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:7,width:24,height:24,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button><span style={{fontSize:11,fontWeight:800,color:"#818CF8",minWidth:36,textAlign:"center"}}>{selYear}</span><button onClick={()=>setSelYear(y=>y+1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:7,width:24,height:24,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>›</button></>}
-                  <button onClick={()=>setShowHist(p=>!p)} style={{background:"none",border:"none",color:"#475569",fontSize:11,cursor:"pointer",fontWeight:700}}>{showHist?T.hide:T.show}</button>
+            <div style={{display:"flex",gap:7,overflowX:"auto",paddingBottom:6,marginBottom:12}}>
+              {accs.map(a=>(
+                <div key={a.id} onClick={()=>openAccAdjust(a.id)} style={{minWidth:130,background:"#0D1526",border:`1px solid ${a.color}35`,borderRadius:16,padding:"11px 12px",flexShrink:0,position:"relative",overflow:"hidden",cursor:"pointer"}}>
+                  <div style={{position:"absolute",top:-12,right:-12,width:52,height:52,borderRadius:"50%",background:`radial-gradient(circle,${a.color}20,transparent)`,pointerEvents:"none"}}/>
+                  <div style={{fontSize:18,marginBottom:4}}>{a.icon}</div>
+                  <p style={{fontSize:10,color:"#64748B",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name}</p>
+                  <p className="mono" style={{fontSize:14,fontWeight:700,marginTop:2,color:getAccBal(a.id)>=0?a.color:"#F87171"}}>{fmtC(getAccBal(a.id))}</p>
+                  <span style={{fontSize:9,color:"#2E3D55",fontWeight:700}}>{typeLabel(a.type).replace(/^[^\s]+\s/,"")}</span>
                 </div>
+              ))}
+            </div>
+
+            {/* ── HISTÓRICO MENSAL ── */}
+            <div className="card" style={{marginBottom:11}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:showHist?10:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <h3 style={{fontSize:13,fontWeight:800,letterSpacing:.3}}>{T.history}</h3>
+                  {showHist&&(
+                    <div style={{display:"flex",alignItems:"center",gap:2}}>
+                      <button onClick={()=>setSelYear(y=>y-1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:6,width:22,height:22,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>‹</button>
+                      <span style={{fontSize:11,fontWeight:800,color:"#818CF8",minWidth:34,textAlign:"center"}}>{selYear}</span>
+                      <button onClick={()=>setSelYear(y=>y+1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:6,width:22,height:22,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",lineHeight:1}}>›</button>
+                    </div>
+                  )}
+                </div>
+                <button onClick={()=>setShowHist(p=>!p)} style={{background:"none",border:"none",color:"#475569",fontSize:11,cursor:"pointer",fontWeight:700,padding:"2px 0"}}>{showHist?T.hide:T.show}</button>
               </div>
               {showHist&&(()=>{
                 const mx=Math.max(...histMons.map(m=>Math.abs(m.balance)),1);
                 return(
                   <div>
-                    <div style={{display:"flex",gap:5,alignItems:"flex-end",height:70,marginBottom:10}}>
-                      {histMons.map(m=>(
-                        <div key={m.ym} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                          <p className="mono" style={{fontSize:9,color:m.isFuture?"#818CF8":m.balance>=0?"#34D399":"#F87171",fontWeight:600}}>{fmtS(m.balance)}</p>
-                          <div style={{width:"100%",height:50,display:"flex",alignItems:"flex-end"}}>
-                            <div style={{width:"100%",height:`${Math.max(Math.abs(m.balance)/mx*100,6)}%`,borderRadius:"4px 4px 0 0",transition:"height .5s",opacity:m.ym===selMon?1:.45,
-                              background:m.isFuture
-                                ?"linear-gradient(180deg,#6366F1,#4338CA)"
-                                :`linear-gradient(180deg,${m.balance>=0?"#34D399":"#F87171"},${m.balance>=0?"#059669":"#DC2626"})`,
-                              border:m.isFuture?"1px dashed #6366F160":"none",
-                              boxSizing:"border-box"
-                            }}/>
+                    {/* Gráfico de barras compacto com scroll */}
+                    <div style={{overflowX:"auto",marginBottom:10,paddingBottom:4}}>
+                      <div style={{display:"flex",gap:4,alignItems:"flex-end",height:72,minWidth:"100%",width:"max-content"}}>
+                        {histMons.map(m=>(
+                          <div key={m.ym} onClick={()=>setSelMon(m.ym)} style={{width:36,flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer"}}>
+                            <p className="mono" style={{fontSize:8,color:m.isFuture?"#818CF8":m.balance>=0?"#34D399":"#F87171",fontWeight:600,lineHeight:1}}>{fmtS(m.balance)}</p>
+                            <div style={{width:"100%",height:48,display:"flex",alignItems:"flex-end"}}>
+                              <div style={{width:"100%",height:`${Math.max(Math.abs(m.balance)/mx*100,5)}%`,borderRadius:"3px 3px 0 0",transition:"height .4s",
+                                opacity:m.ym===selMon?1:.5,
+                                background:m.isFuture?"linear-gradient(180deg,#6366F1,#4338CA)":`linear-gradient(180deg,${m.balance>=0?"#34D399":"#F87171"},${m.balance>=0?"#059669":"#DC2626"})`,
+                                border:m.isFuture?"1px dashed #6366F150":m.ym===selMon?"2px solid #ffffff30":"none",
+                                boxSizing:"border-box"
+                              }}/>
+                            </div>
+                            <p style={{fontSize:8,color:m.ym===selMon?"#818CF8":m.isFuture?"#6366F170":"#374151",fontWeight:m.ym===selMon?800:700,lineHeight:1}}>{m.label.slice(0,3)}</p>
                           </div>
-                          <p style={{fontSize:9,color:m.isFuture?"#6366F180":"#475569",fontWeight:700}}>{m.label}</p>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
+                    {/* Lista de meses */}
                     {histMons.map(m=>(
-                      <div key={m.ym} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #111827",opacity:m.isFuture?0.75:1}}>
+                      <div key={m.ym} onClick={()=>setSelMon(m.ym)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #0D1526",opacity:m.isFuture?0.7:1,cursor:"pointer",borderRadius:4}}>
                         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                          <span style={{fontSize:12,fontWeight:700,color:m.isFuture?"#6366F190":"#64748B"}}>{m.label}</span>
-                          {m.isFuture&&<span className="pill" style={{background:"#6366F118",color:"#818CF8",border:"1px solid #6366F130",fontSize:9}}>▷</span>}
-                          {m.adjusted&&<span className="pill" style={{background:"#F59E0B15",color:"#F59E0B",border:"1px solid #F59E0B30"}}>✏️</span>}
+                          <div style={{width:3,height:16,borderRadius:2,background:m.ym===selMon?"#6366F1":m.isFuture?"#6366F140":"#1A2640",flexShrink:0}}/>
+                          <span style={{fontSize:12,fontWeight:m.ym===selMon?800:600,color:m.ym===selMon?"#E8EDF5":m.isFuture?"#6366F190":"#64748B"}}>{m.label}</span>
+                          {m.isFuture&&<span className="pill" style={{background:"#6366F115",color:"#818CF8",border:"1px solid #6366F130",fontSize:8}}>▷</span>}
+                          {m.adjusted&&<span className="pill" style={{background:"#F59E0B12",color:"#F59E0B",border:"1px solid #F59E0B30",fontSize:8}}>✏️</span>}
                         </div>
                         <div style={{display:"flex",gap:5,alignItems:"center"}}>
                           <span className="mono" style={{fontSize:13,fontWeight:700,color:m.isFuture?"#818CF8":m.balance>=0?"#34D399":"#F87171"}}>{fmtC(m.balance)}</span>
-                          <button onClick={()=>{setEditBM(m.ym);setTmpBal(String(m.balance));setModal("balAdj");}} style={{background:"#1A2640",border:"none",color:"#64748B",borderRadius:7,padding:"3px 7px",fontSize:11,cursor:"pointer"}}>✏️</button>
-                          {m.adjusted&&<button onClick={()=>rmBal(m.ym)} style={{background:"#1A2640",border:"none",color:"#EF4444",borderRadius:7,padding:"3px 7px",fontSize:11,cursor:"pointer"}}>↺</button>}
+                          <button onClick={e=>{e.stopPropagation();setEditBM(m.ym);setTmpBal(String(m.balance));setModal("balAdj");}} style={{background:"#111827",border:"none",color:"#475569",borderRadius:6,padding:"3px 6px",fontSize:11,cursor:"pointer"}}>✏️</button>
+                          {m.adjusted&&<button onClick={e=>{e.stopPropagation();rmBal(m.ym);}} style={{background:"#111827",border:"none",color:"#EF4444",borderRadius:6,padding:"3px 6px",fontSize:11,cursor:"pointer"}}>↺</button>}
                         </div>
                       </div>
                     ))}
@@ -896,7 +942,35 @@ function App(){
                 );
               })()}
             </div>
-            {(()=>{const recs=txs.filter(t=>t.recurrent&&t.status==="pending");if(!recs.length)return null;return(<div className="card"><h3 style={{fontSize:14,fontWeight:800,marginBottom:10}}>{T.recurringPending}</h3>{recs.map(t=>{const acc=getTxAccountMeta(t);return(<div key={t.id} style={{display:"flex",gap:9,alignItems:"center",padding:"8px 0",borderBottom:"1px solid #111827"}}><div style={{width:36,height:36,borderRadius:11,background:getCatById(allCats,t.cat).color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{getCatById(allCats,t.cat).icon}</div><div style={{flex:1,minWidth:0}}><p style={{fontSize:13,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}</p><p style={{fontSize:10,color:"#64748B"}}>🔁 {t.recurrence==="monthly"?T.monthly:t.recurrence==="weekly"?T.weekly:T.yearly}{acc?` · ${acc.icon} ${acc.name}`:""}</p></div><div style={{textAlign:"right",flexShrink:0}}><p className="mono" style={{fontSize:13,fontWeight:700,color:"#F87171"}}>{fmtC(t.amount)}</p><button onClick={()=>markPaid(t.id)} style={{background:"#34D39920",border:"1px solid #34D39950",color:"#34D399",borderRadius:7,padding:"2px 6px",fontSize:9,cursor:"pointer",fontWeight:700,marginTop:2}}>{T.payBtn}</button></div></div>);})}</div>);})()}
+
+            {/* ── RECORRENTES PENDENTES ── */}
+            {(()=>{
+              const recs=txs.filter(t=>t.recurrent&&t.status==="pending");
+              if(!recs.length)return null;
+              return(
+                <div className="card" style={{marginBottom:4}}>
+                  <h3 style={{fontSize:13,fontWeight:800,marginBottom:10,letterSpacing:.3}}>{T.recurringPending}</h3>
+                  {recs.map(t=>{
+                    const acc=getTxAccountMeta(t);
+                    const cat=getCatById(allCats,t.cat);
+                    return(
+                      <div key={t.id} style={{display:"flex",gap:9,alignItems:"center",padding:"8px 0",borderBottom:"1px solid #0D1526"}}>
+                        <div style={{width:34,height:34,borderRadius:10,background:cat.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{cat.icon}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <p style={{fontSize:13,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}</p>
+                          <p style={{fontSize:10,color:"#64748B"}}>🔁 {t.recurrence==="monthly"?T.monthly:t.recurrence==="weekly"?T.weekly:T.yearly}{acc?` · ${acc.icon} ${acc.name}`:""}</p>
+                        </div>
+                        <div style={{textAlign:"right",flexShrink:0}}>
+                          <p className="mono" style={{fontSize:13,fontWeight:700,color:"#F87171"}}>{fmtC(t.amount)}</p>
+                          <button onClick={()=>markPaid(t.id)} style={{background:"#34D39915",border:"1px solid #34D39940",color:"#34D399",borderRadius:7,padding:"2px 7px",fontSize:9,cursor:"pointer",fontWeight:700,marginTop:3}}>{T.payBtn}</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
           </div>
         )}
 
