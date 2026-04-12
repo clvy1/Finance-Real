@@ -485,7 +485,115 @@ function App(){
   const dueSoon = pending.filter(t=>{const d=ddiff(t.dueDate);return d>=0&&d<=3;});
   const totAssets=accs.filter(a=>a.includeInTotal).reduce((s,a)=>s+getAccBal(a.id),0);
 
-  const getMonBal=ym=>{
+  // ── PROJEÇÃO PATRIMONIAL ──────────────────────────────────
+  // Para meses futuros, calcula: receitas/despesas projetadas do mês,
+  // acumulado do ano até aquele mês, e patrimônio projetado naquele ponto.
+  const getMonProjection = useMemo(()=>{
+    return (ym)=>{
+      if(ym<=currentYM) return null; // só para meses futuros
+      const [yy,mm]=ym.split("-").map(Number);
+
+      // 1. Receitas e despesas projetadas para este mês específico
+      let projIncome=0, projExpense=0;
+      (txs||[]).forEach(t=>{
+        if(t.type==="transfer_in"||t.type==="transfer_out") return;
+        if(t.recurrent){
+          if(t.recurrence==="monthly"){
+            const tYM=t.date.slice(0,7);
+            if(tYM<ym){
+              if(t.type==="income") projIncome+=t.amount;
+              if(t.type==="expense") projExpense+=t.amount;
+            }
+          } else if(t.recurrence==="yearly"){
+            const tDate=new Date(t.date+"T12:00:00");
+            const sameMonth=String(tDate.getMonth()+1).padStart(2,"0")===String(mm).padStart(2,"0");
+            if(sameMonth && tDate.getFullYear()<=yy){
+              if(t.type==="income") projIncome+=t.amount;
+              if(t.type==="expense") projExpense+=t.amount;
+            }
+          }
+        } else {
+          // lançamentos avulsos explicitamente neste mês futuro
+          if(t.date.startsWith(ym)){
+            if(t.type==="income") projIncome+=t.amount;
+            if(t.type==="expense") projExpense+=t.amount;
+          }
+        }
+      });
+
+      // 2. Acumulado real do ano até o mês atual (meses passados + atual)
+      const yearStr=String(yy);
+      let ytdIncome=0, ytdExpense=0;
+      (txs||[]).forEach(t=>{
+        if(!t.date.startsWith(yearStr)) return;
+        if(t.type==="transfer_in"||t.type==="transfer_out") return;
+        const tYM=t.date.slice(0,7);
+        if(tYM<=currentYM){
+          if(t.type==="income"&&t.status==="paid") ytdIncome+=t.amount;
+          if(t.type==="expense"&&t.status==="paid") ytdExpense+=t.amount;
+        }
+      });
+
+      // 3. Projeção acumulada do ano até o mês selecionado
+      //    soma os meses futuros desde currentYM+1 até ym inclusive
+      let cumProjIncome=ytdIncome, cumProjExpense=ytdExpense;
+      const [cy,cm]=currentYM.split("-").map(Number);
+      for(let i=1;;i++){
+        let fm=cm+i, fy=cy;
+        if(fm>12){fm-=12;fy++;}
+        const fym=`${fy}-${String(fm).padStart(2,"0")}`;
+        // project this intermediate month
+        let fi=0,fe=0;
+        (txs||[]).forEach(t=>{
+          if(t.type==="transfer_in"||t.type==="transfer_out") return;
+          if(t.recurrent){
+            if(t.recurrence==="monthly"){
+              const tYM=t.date.slice(0,7);
+              if(tYM<fym){
+                if(t.type==="income") fi+=t.amount;
+                if(t.type==="expense") fe+=t.amount;
+              }
+            } else if(t.recurrence==="yearly"){
+              const tDate=new Date(t.date+"T12:00:00");
+              if(String(tDate.getMonth()+1).padStart(2,"0")===String(fm).padStart(2,"0")&&tDate.getFullYear()<=fy){
+                if(t.type==="income") fi+=t.amount;
+                if(t.type==="expense") fe+=t.amount;
+              }
+            }
+          } else if(t.date.startsWith(fym)){
+            if(t.type==="income") fi+=t.amount;
+            if(t.type==="expense") fe+=t.amount;
+          }
+        });
+        cumProjIncome+=fi;
+        cumProjExpense+=fe;
+        if(fym>=ym) break;
+        if(i>24) break; // safety
+      }
+
+      // 4. Patrimônio projetado = patrimônio atual + saldo acumulado projetado a partir de agora
+      const projNetFromNow=round2(cumProjIncome-ytdIncome-(cumProjExpense-ytdExpense));
+      const projAssets=round2(totAssets+projNetFromNow);
+
+      // 5. Taxa de poupança projetada do mês
+      const savingsRate=projIncome>0?Math.round(((projIncome-projExpense)/projIncome)*100):0;
+
+      return {
+        projIncome:round2(projIncome),
+        projExpense:round2(projExpense),
+        projNet:round2(projIncome-projExpense),
+        ytdIncome:round2(ytdIncome),
+        ytdExpense:round2(ytdExpense),
+        cumProjIncome:round2(cumProjIncome),
+        cumProjExpense:round2(cumProjExpense),
+        projAssets,
+        savingsRate,
+        monthsAhead: Math.round((yy-cy)*12+(mm-cm)),
+      };
+    };
+  },[txs,currentYM,totAssets]);
+
+
     const h=balH[ym];
     if(h?.adjusted&&h?.manual!==null) return h.manual;
     const [yy,mm]=ym.split("-").map(Number);
@@ -842,30 +950,105 @@ function App(){
               </div>
             </div>
 
-            {/* ── CARD RESULTADO DO MÊS ── */}
-            <div style={{background:"linear-gradient(135deg,#0D1930,#0A1020)",border:`1px solid ${selMon>currentYM?"#6366F140":"#1A2640"}`,borderRadius:20,padding:"14px 16px",marginBottom:11,position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-24,right:-24,width:100,height:100,borderRadius:"50%",background:"radial-gradient(circle,#6366F118,transparent)",pointerEvents:"none"}}/>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                <div>
-                  <p style={{fontSize:10,color:"#475569",fontWeight:700,letterSpacing:.8,textTransform:"uppercase"}}>
-                    {MONTHS_BASE[parseInt(selMon.split("-")[1])-1]} {selMon.slice(0,4)} · {selMon>currentYM?"PROJEÇÃO":T.result}
-                  </p>
-                  <p className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:-1,lineHeight:1.15,marginTop:3,color:selMon>currentYM?"#818CF8":getMonBal(selMon)>=0?"#34D399":"#F87171"}}>{fmtC(getMonBal(selMon))}</p>
-                  {selMon>currentYM&&<p style={{fontSize:9,color:"#475569",marginTop:2}}>Baseado em recorrentes ativas</p>}
+            {/* ── CARD RESULTADO / PROJEÇÃO ── */}
+            {(()=>{
+              const isFut=selMon>currentYM;
+              const proj=isFut?getMonProjection(selMon):null;
+              return(
+                <div style={{background:isFut?"linear-gradient(135deg,#0D1235,#0A0E20)":"linear-gradient(135deg,#0D1930,#0A1020)",border:`1px solid ${isFut?"#6366F145":"#1A2640"}`,borderRadius:20,padding:"14px 16px",marginBottom:11,position:"relative",overflow:"hidden",width:"100%",boxSizing:"border-box"}}>
+                  <div style={{position:"absolute",top:-24,right:-24,width:100,height:100,borderRadius:"50%",background:isFut?"radial-gradient(circle,#6366F122,transparent)":"radial-gradient(circle,#6366F118,transparent)",pointerEvents:"none"}}/>
+
+                  {/* Header */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                    <div style={{minWidth:0,flex:1}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                        <p style={{fontSize:10,color:"#475569",fontWeight:700,letterSpacing:.8,textTransform:"uppercase"}}>
+                          {MONTHS_BASE[parseInt(selMon.split("-")[1])-1]} {selMon.slice(0,4)}
+                        </p>
+                        {isFut
+                          ? <span className="pill" style={{background:"#6366F120",color:"#818CF8",border:"1px solid #6366F140",fontSize:8}}>▷ PROJEÇÃO</span>
+                          : <span className="pill" style={{background:"#34D39915",color:"#34D399",border:"1px solid #34D39930",fontSize:8}}>● REAL</span>
+                        }
+                        {balH[selMon]?.adjusted&&<span className="pill" style={{background:"#F59E0B15",color:"#F59E0B",border:"1px solid #F59E0B30",fontSize:8}}>✏️</span>}
+                      </div>
+                      <p className="mono" style={{fontSize:27,fontWeight:700,letterSpacing:-1,lineHeight:1.1,color:isFut?"#818CF8":getMonBal(selMon)>=0?"#34D399":"#F87171"}}>
+                        {isFut?fmtC(proj.projNet):fmtC(getMonBal(selMon))}
+                      </p>
+                      <p style={{fontSize:9,color:"#475569",marginTop:2}}>
+                        {isFut?"Saldo projetado do mês":"Saldo do mês"}
+                      </p>
+                    </div>
+                    <button onClick={()=>{setEditBM(selMon);setTmpBal(String(isFut?proj.projNet:getMonBal(selMon)));setModal("balAdj");}} style={{background:"none",border:"1px dashed #2A3A55",color:"#475569",borderRadius:8,padding:"3px 8px",fontSize:9,cursor:"pointer",fontWeight:700,flexShrink:0,marginLeft:8}}>✏️</button>
+                  </div>
+
+                  {/* Linha 1: receitas / despesas / a pagar */}
+                  <div style={{display:"flex",gap:5,marginBottom:isFut?8:0}}>
+                    {(isFut
+                      ? [[T.income,proj.projIncome,"#818CF8"],[T.expenses,proj.projExpense,"#A78BFA"],[T.toPay,totPend,"#F59E0B"]]
+                      : [[T.income,income,"#34D399"],[T.expenses,expenses,"#F87171"],[T.toPay,totPend,"#F59E0B"]]
+                    ).map(([l,v,c])=>(
+                      <div key={l} style={{flex:1,background:"#080C1895",borderRadius:10,padding:"7px 7px"}}>
+                        <p style={{fontSize:8,color:"#475569",marginBottom:2,fontWeight:700,letterSpacing:.3}}>{l}</p>
+                        <p className="mono" style={{fontSize:11,fontWeight:700,color:c}}>{fmtC(v)}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Bloco extra só para projeção */}
+                  {isFut&&proj&&(()=>{
+                    const savColor=proj.savingsRate>=20?"#34D399":proj.savingsRate>=0?"#F59E0B":"#F87171";
+                    return(
+                      <div style={{borderTop:"1px solid #6366F120",paddingTop:8,display:"flex",flexDirection:"column",gap:7}}>
+
+                        {/* Patrimônio projetado */}
+                        <div style={{background:"#6366F112",border:"1px solid #6366F130",borderRadius:12,padding:"9px 11px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div>
+                            <p style={{fontSize:9,color:"#818CF8",fontWeight:700,letterSpacing:.5,marginBottom:2}}>PATRIMÔNIO PROJETADO</p>
+                            <p className="mono" style={{fontSize:16,fontWeight:800,color:proj.projAssets>=totAssets?"#34D399":"#F87171"}}>{fmtC(proj.projAssets)}</p>
+                          </div>
+                          <div style={{textAlign:"right"}}>
+                            <p style={{fontSize:9,color:"#475569",fontWeight:700,marginBottom:2}}>vs. hoje</p>
+                            <p className="mono" style={{fontSize:12,fontWeight:700,color:proj.projAssets>=totAssets?"#34D399":"#F87171"}}>{proj.projAssets>=totAssets?"+":""}{fmtC(round2(proj.projAssets-totAssets))}</p>
+                          </div>
+                        </div>
+
+                        {/* Acumulado do ano + taxa de poupança */}
+                        <div style={{display:"flex",gap:5}}>
+                          <div style={{flex:1,background:"#080C1895",borderRadius:10,padding:"7px 8px"}}>
+                            <p style={{fontSize:8,color:"#475569",fontWeight:700,marginBottom:2,letterSpacing:.3}}>RECEITAS NO ANO</p>
+                            <p className="mono" style={{fontSize:11,fontWeight:700,color:"#818CF8"}}>{fmtC(proj.cumProjIncome)}</p>
+                            <p style={{fontSize:8,color:"#374151",marginTop:1}}>real+proj</p>
+                          </div>
+                          <div style={{flex:1,background:"#080C1895",borderRadius:10,padding:"7px 8px"}}>
+                            <p style={{fontSize:8,color:"#475569",fontWeight:700,marginBottom:2,letterSpacing:.3}}>DESPESAS NO ANO</p>
+                            <p className="mono" style={{fontSize:11,fontWeight:700,color:"#A78BFA"}}>{fmtC(proj.cumProjExpense)}</p>
+                            <p style={{fontSize:8,color:"#374151",marginTop:1}}>real+proj</p>
+                          </div>
+                          <div style={{flex:1,background:"#080C1895",borderRadius:10,padding:"7px 8px"}}>
+                            <p style={{fontSize:8,color:"#475569",fontWeight:700,marginBottom:2,letterSpacing:.3}}>POUPANÇA MÊS</p>
+                            <p className="mono" style={{fontSize:11,fontWeight:700,color:savColor}}>{proj.savingsRate}%</p>
+                            <p style={{fontSize:8,color:"#374151",marginTop:1}}>da receita</p>
+                          </div>
+                        </div>
+
+                        {/* Barra de progresso poupança */}
+                        <div>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                            <p style={{fontSize:8,color:"#475569",fontWeight:700}}>META DE POUPANÇA</p>
+                            <p style={{fontSize:8,color:savColor,fontWeight:800}}>{proj.savingsRate>=20?"✓ Ótimo":proj.savingsRate>=10?"→ Razoável":"↓ Abaixo"}</p>
+                          </div>
+                          <div style={{height:5,background:"#111827",borderRadius:3,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:`${Math.min(Math.max(proj.savingsRate,0),100)}%`,background:`linear-gradient(90deg,${savColor},${savColor}88)`,borderRadius:3,transition:"width .6s"}}/>
+                          </div>
+                          <p style={{fontSize:8,color:"#374151",marginTop:2}}>Recomendado: poupar ≥ 20% da receita</p>
+                        </div>
+
+                      </div>
+                    );
+                  })()}
                 </div>
-                <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",flexShrink:0}}>
-                  {selMon>currentYM&&<span className="pill" style={{background:"#6366F120",color:"#818CF8",border:"1px solid #6366F140",fontSize:9}}>▷ Futuro</span>}
-                  {balH[selMon]?.adjusted&&<span className="pill" style={{background:"#F59E0B20",color:"#F59E0B",border:"1px solid #F59E0B40",fontSize:9}}>✏️ Ajust.</span>}
-                  <button onClick={()=>{setEditBM(selMon);setTmpBal(String(getMonBal(selMon)));setModal("balAdj");}} style={{background:"none",border:"1px dashed #2A3A55",color:"#475569",borderRadius:8,padding:"3px 8px",fontSize:9,cursor:"pointer",fontWeight:700}}>✏️</button>
-                </div>
-              </div>
-              <div style={{display:"flex",gap:6}}>
-                {(selMon>currentYM
-                  ? [[T.income,getMonBal(selMon)>0?getMonBal(selMon):0,"#818CF8"],[T.expenses,getMonBal(selMon)<0?Math.abs(getMonBal(selMon)):0,"#818CF8"],[T.toPay,totPend,"#F59E0B"]]
-                  : [[T.income,income,"#34D399"],[T.expenses,expenses,"#F87171"],[T.toPay,totPend,"#F59E0B"]]
-                ).map(([l,v,c])=>(<div key={l} style={{flex:1,background:"#080C1890",borderRadius:10,padding:"7px 8px"}}><p style={{fontSize:9,color:"#475569",marginBottom:2,fontWeight:700,letterSpacing:.4}}>{l}</p><p className="mono" style={{fontSize:12,fontWeight:700,color:c}}>{fmtC(v)}</p></div>))}
-              </div>
-            </div>
+              );
+            })()}
 
             {/* ── CONTAS & CARTÕES ── */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
