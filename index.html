@@ -336,7 +336,20 @@ const INIT_TX=[
   {id:"t14",desc:"Aluguel Fev",   amount:1200, type:"expense",cat:"bills", date:"2026-02-05",status:"paid",   accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-02-05"},
 ];
 const INIT_HIST={"2026-02":{adjusted:false,manual:null},"2026-03":{adjusted:false,manual:null},"2026-04":{adjusted:false,manual:null}};
-const ALL_MONTHS=["2026-02","2026-03","2026-04"];
+
+// Dynamic months: 3 past + current + 3 future from TODAY
+function buildAllMonths(todayStr){
+  const [y,m]=todayStr.split("-").map(Number);
+  const months=[];
+  for(let i=-3;i<=3;i++){
+    let mm=m+i, yy=y;
+    if(mm<1){mm+=12;yy--;}
+    if(mm>12){mm-=12;yy++;}
+    months.push(`${yy}-${String(mm).padStart(2,"0")}`);
+  }
+  return months;
+}
+const ALL_MONTHS=buildAllMonths(TODAY);
 
 function useLS(key,init){
   const [v,setV]=useState(()=>{try{const s=localStorage.getItem("fr4_"+key);return s?JSON.parse(s):init;}catch{return init;}});
@@ -434,7 +447,11 @@ function App(){
 
   const accBalanceById = useMemo(()=>Object.fromEntries((accs||[]).map(a=>{
     const acc=normalizeAccount(a);
-    const delta=(txs||[]).filter(t=>t.accountId===acc.id&&t.status==="paid").reduce((s,t)=>s+(t.type==="income"?t.amount:t.type==="transfer_in"?t.amount:-t.amount),0);
+    const delta=(txs||[]).filter(t=>t.accountId===acc.id&&t.status==="paid").reduce((s,t)=>{
+      if(t.type==="income"||t.type==="transfer_in") return s+t.amount;
+      if(t.type==="expense"||t.type==="transfer_out") return s-t.amount;
+      return s;
+    },0);
     return [acc.id,round2(acc.openingBalance+delta)];
   })),[accs,txs]);
   const getAccBal = useCallback(id=>accBalanceById[id]??0,[accBalanceById]);
@@ -457,8 +474,57 @@ function App(){
   const dueSoon = pending.filter(t=>{const d=ddiff(t.dueDate);return d>=0&&d<=3;});
   const totAssets=accs.filter(a=>a.includeInTotal).reduce((s,a)=>s+getAccBal(a.id),0);
 
-  const getMonBal=ym=>{const h=balH[ym];if(h?.adjusted&&h?.manual!==null)return h.manual;const t=txs.filter(x=>x.date.startsWith(ym));return t.filter(x=>x.type==="income"&&x.status==="paid").reduce((a,x)=>a+x.amount,0)-t.filter(x=>x.type==="expense"&&x.status==="paid").reduce((a,x)=>a+x.amount,0);};
-  const histMons=ALL_MONTHS.map(ym=>({ym,label:MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4),balance:getMonBal(ym),adjusted:balH[ym]?.adjusted}));
+  const getMonBal=ym=>{
+    const h=balH[ym];
+    if(h?.adjusted&&h?.manual!==null) return h.manual;
+    const [yy,mm]=ym.split("-").map(Number);
+    const today=new Date(TODAY+"T12:00:00");
+    const isCurrentOrPast=new Date(ym+"-01")<=new Date(today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-01");
+    if(isCurrentOrPast){
+      // Use actual transactions for past/current months
+      const t=txs.filter(x=>x.date.startsWith(ym));
+      return t.filter(x=>x.type==="income"&&x.status==="paid").reduce((a,x)=>a+x.amount,0)
+            -t.filter(x=>x.type==="expense"&&x.status==="paid").reduce((a,x)=>a+x.amount,0);
+    } else {
+      // Project recurring transactions into future months
+      let projected=0;
+      (txs||[]).forEach(t=>{
+        if(!t.recurrent||t.type==="transfer_in"||t.type==="transfer_out") return;
+        if(t.recurrence==="monthly"){
+          // project if this tx would fall in this month
+          const tDate=new Date(t.date+"T12:00:00");
+          const tYM=`${tDate.getFullYear()}-${String(tDate.getMonth()+1).padStart(2,"0")}`;
+          if(tYM<ym){ // recurring started before this future month
+            if(t.type==="income") projected+=t.amount;
+            if(t.type==="expense") projected-=t.amount;
+          }
+        } else if(t.recurrence==="yearly"){
+          const tDate=new Date(t.date+"T12:00:00");
+          const sameMonth=String(tDate.getMonth()+1).padStart(2,"0")===String(mm).padStart(2,"0");
+          const tYY=tDate.getFullYear();
+          if(sameMonth && tYY<=yy){
+            if(t.type==="income") projected+=t.amount;
+            if(t.type==="expense") projected-=t.amount;
+          }
+        }
+      });
+      // Also add any transactions explicitly dated in this future month
+      const explicit=txs.filter(x=>x.date.startsWith(ym)&&!x.recurrent);
+      explicit.forEach(x=>{
+        if(x.type==="income"&&x.status!=="pending") projected+=x.amount;
+        if(x.type==="expense") projected-=x.amount; // pending future expenses still projected
+      });
+      return round2(projected);
+    }
+  };
+  const currentYM=TODAY.slice(0,7);
+  const histMons=ALL_MONTHS.map(ym=>({
+    ym,
+    label:MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4),
+    balance:getMonBal(ym),
+    adjusted:balH[ym]?.adjusted,
+    isFuture:ym>currentYM,
+  }));
 
   const toast_=useCallback((msg,color="#10B981")=>{setToast({msg,color});setTimeout(()=>setToast(null),2600);},[]);
   const switchTab=useCallback((next)=>{setModal(null);setTab(next);requestAnimationFrame(()=>{try{document.querySelector(".scr")?.scrollTo({top:0,behavior:"instant"});}catch{};window.scrollTo?.(0,0);});},[]);
@@ -478,7 +544,7 @@ function App(){
   const doRestore=()=>{if(!restoreConfirm)return;setTxs(restoreConfirm.transactions||[]);setAccs(restoreConfirm.accounts||[]);if(restoreConfirm.balanceHistory)setBalH(restoreConfirm.balanceHistory);if(restoreConfirm.customCategories)setCustomCats(restoreConfirm.customCategories);setRestoreConfirm(null);setModal(null);toast_(T.restoreOk);};
 
   // TX
-  const blankF={desc:"",amount:"",type:"expense",cat:"food",date:TODAY,dueDate:TODAY,status:"pending",accountId:accs[0]?.id||"acc1",recurrent:false,recurrence:"monthly",installments:false,installCount:2,scheduled:false,scheduledDate:TODAY};
+  const blankF={desc:"",amount:"",type:"expense",cat:"food",date:TODAY,dueDate:TODAY,status:"pending",accountId:accs[0]?.id||"acc1",recurrent:false,recurrence:"monthly",installments:false,installCount:2,installmentTotal:"",scheduled:false,scheduledDate:TODAY};
   const [form,setForm]=useState(blankF);
 
   // Get filterable cats based on form.type
@@ -486,11 +552,21 @@ function App(){
 
   const addTx=()=>{
     if(!form.desc||!form.amount)return;
-    const base={...form,amount:parseFloat(form.amount),id:uid()};
     const toAdd=[];
     if(form.installments&&form.installCount>=2){
-      for(let i=0;i<form.installCount;i++){const d=new Date(form.dueDate);d.setMonth(d.getMonth()+i);const dd=d.toISOString().slice(0,10);toAdd.push({...base,id:uid(),desc:`${form.desc} (${i+1}/${form.installCount})`,date:i===0?form.date:dd,dueDate:dd,recurrent:false,installments:false});}
-    } else toAdd.push(base);
+      // Use installmentTotal (total value) divided by installCount for each parcel
+      const totalVal=parseFloat(form.installmentTotal||form.amount)||0;
+      const parcelVal=round2(totalVal/form.installCount);
+      const base={...form,amount:parcelVal,id:uid(),installments:false,recurrent:false};
+      for(let i=0;i<form.installCount;i++){
+        const d=new Date(form.dueDate+"T12:00:00");
+        d.setMonth(d.getMonth()+i);
+        const dd=d.toISOString().slice(0,10);
+        toAdd.push({...base,id:uid(),desc:`${form.desc} (${i+1}/${form.installCount})`,date:i===0?form.date:dd,dueDate:dd});
+      }
+    } else {
+      toAdd.push({...form,amount:parseFloat(form.amount),id:uid()});
+    }
     setTxs(p=>[...toAdd,...p]);setModal(null);setForm(blankF);
     toast_(toAdd.length>1?T.parcelsAdded.replace("{n}",toAdd.length):T.txAdded);
   };
@@ -530,7 +606,17 @@ function App(){
   };
 
   const markPaid=id=>{setTxs(p=>{const tx=p.find(t=>t.id===id);if(!tx)return p;const pairId=tx.transferPairId;return p.map(t=>t.id===id || (pairId && t.transferPairId===pairId)?{...t,status:"paid"}:t);});toast_(T.paidOk);};
-  const delTx  =id=>{setTxs(p=>{const tx=p.find(t=>t.id===id);if(!tx)return p;const pairId=tx.transferPairId;return p.filter(t=>!(t.id===id || (pairId && t.transferPairId===pairId)));});setModal(null);toast_(T.removed,"#EF4444");};
+  const delTx  =id=>{
+    setTxs(p=>{
+      const tx=p.find(t=>t.id===id);
+      if(!tx) return p;
+      const pairId=tx.transferPairId;
+      // Always remove both legs of a transfer
+      return p.filter(t=>!(t.id===id || (pairId && t.transferPairId===pairId)));
+    });
+    setModal(null);
+    toast_(T.removed,"#EF4444");
+  };
 
   // ACCOUNT
   const blankA={name:"",type:"checking",color:"#7C6FFF",icon:"🏦",openingBalance:"",includeInTotal:true};
@@ -588,9 +674,49 @@ function App(){
   const copyText=async(t)=>{try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t);}else{const ta=document.createElement("textarea");ta.value=t;ta.setAttribute("readonly","");ta.style.position="fixed";ta.style.left="-9999px";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);}toast_("Código PIX copiado ✓","#10B981");}catch{toast_("Não foi possível copiar","#EF4444");}};
   const donate=type=>{const plans={one_time_20_usd:{usd:20,label:"☕ Uma vez"},annual_10_usd:{usd:10,label:"⭐ Apoiador Anual"},monthly_1_usd:{usd:1,label:"🔁 Apoiador Mensal"}};const plan=plans[type];if(!plan)return;const amountBRL=plan.usd*TEST_PIX.usdToBrl;setPixModal({type,label:plan.label,usdValue:plan.usd,brlValue:amountBRL,pixCode:buildPixCode({amountBRL,label:plan.label}),key:TEST_PIX.key,rate:TEST_PIX.usdToBrl});};
 
-  // FILTER TX
-  const filtTx=txs
-    .filter(t=>t.date.startsWith(selMon))
+  // For future months, project recurring transactions as preview entries
+  const projectedTxsForFuture = useMemo(()=>{
+    if(selMon<=currentYM) return [];
+    const [yy,mm]=selMon.split("-").map(Number);
+    const projected=[];
+    (txs||[]).forEach(t=>{
+      if(!t.recurrent||t.type==="transfer_in"||t.type==="transfer_out") return;
+      if(t.recurrence==="monthly"){
+        const tYM=t.date.slice(0,7);
+        if(tYM<selMon){
+          // project into this month keeping same day
+          const day=t.date.slice(8,10);
+          projected.push({
+            ...t,
+            id:`proj_${t.id}_${selMon}`,
+            date:`${selMon}-${day}`,
+            dueDate:`${selMon}-${day}`,
+            status:"pending",
+            _isProjection:true,
+          });
+        }
+      } else if(t.recurrence==="yearly"){
+        const tDate=new Date(t.date+"T12:00:00");
+        const sameMonth=String(tDate.getMonth()+1).padStart(2,"0")===String(mm).padStart(2,"0");
+        if(sameMonth && tDate.getFullYear()<=yy){
+          projected.push({
+            ...t,
+            id:`proj_${t.id}_${selMon}`,
+            date:`${selMon}-${String(tDate.getDate()).padStart(2,"0")}`,
+            dueDate:`${selMon}-${String(tDate.getDate()).padStart(2,"0")}`,
+            status:"pending",
+            _isProjection:true,
+          });
+        }
+      }
+    });
+    return projected;
+  },[selMon,txs,currentYM]);
+
+  const filtTx=[
+    ...(selMon>currentYM ? projectedTxsForFuture : []),
+    ...txs.filter(t=>t.date.startsWith(selMon)),
+  ]
     .filter(t=>fAcc==="all"||t.accountId===fAcc)
     .filter(t=>fStatus==="all"||t.status===fStatus)
     .sort((a,b)=>b.date.localeCompare(a.date));
@@ -670,17 +796,27 @@ function App(){
               <button onClick={()=>setModal("backup")} style={{background:"#0D1526",border:"1px solid #1A2640",borderRadius:13,padding:"7px 10px",color:"#64748B",fontSize:10,cursor:"pointer",fontWeight:700,display:"flex",flexDirection:"column",alignItems:"center",gap:1}}><span style={{fontSize:18}}>☁️</span><span>BKP</span></button>
             </div>
             <div style={{display:"flex",gap:5,marginBottom:9,overflowX:"auto",paddingBottom:2,flexShrink:0}}>
-              {ALL_MONTHS.map(ym=>(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"5px 12px",borderRadius:20,border:"1.5px solid",whiteSpace:"nowrap",borderColor:selMon===ym?"#6366F1":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":"#475569",fontSize:11,fontWeight:700,cursor:"pointer"}}>{MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4)}</button>))}
+              {ALL_MONTHS.map(ym=>{const isFut=ym>currentYM;return(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"5px 12px",borderRadius:20,border:`1.5px ${isFut?"dashed":"solid"}`,whiteSpace:"nowrap",borderColor:selMon===ym?"#6366F1":isFut?"#2A3A55":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":isFut?"#475569":"#475569",fontSize:11,fontWeight:700,cursor:"pointer",position:"relative"}}>
+                {MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4)}
+                {isFut&&<span style={{fontSize:8,marginLeft:3,color:"#6366F180"}}>▷</span>}
+              </button>);})}
             </div>
-            <div style={{background:"linear-gradient(135deg,#0D1930,#0A1020)",border:"1px solid #1A2640",borderRadius:22,padding:17,marginBottom:11,position:"relative",overflow:"hidden"}}>
+            <div style={{background:"linear-gradient(135deg,#0D1930,#0A1020)",border:`1px solid ${selMon>currentYM?"#6366F140":"#1A2640"}`,borderRadius:22,padding:17,marginBottom:11,position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",top:-30,right:-30,width:120,height:120,borderRadius:"50%",background:"radial-gradient(circle,#6366F118,transparent)",pointerEvents:"none"}}/>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-                <p style={{fontSize:11,color:"#64748B",fontWeight:700,letterSpacing:.7}}>{MONTHS_BASE[parseInt(selMon.split("-")[1])-1].toUpperCase()}/{selMon.slice(2,4)} · {T.result}</p>
-                {balH[selMon]?.adjusted&&<span className="pill" style={{background:"#F59E0B20",color:"#F59E0B",border:"1px solid #F59E0B40"}}>✏️</span>}
+                <p style={{fontSize:11,color:"#64748B",fontWeight:700,letterSpacing:.7}}>{MONTHS_BASE[parseInt(selMon.split("-")[1])-1].toUpperCase()}/{selMon.slice(2,4)} · {selMon>currentYM?"PROJEÇÃO":T.result}</p>
+                <div style={{display:"flex",gap:5}}>
+                  {selMon>currentYM&&<span className="pill" style={{background:"#6366F120",color:"#818CF8",border:"1px solid #6366F140"}}>▷ Futuro</span>}
+                  {balH[selMon]?.adjusted&&<span className="pill" style={{background:"#F59E0B20",color:"#F59E0B",border:"1px solid #F59E0B40"}}>✏️</span>}
+                </div>
               </div>
-              <p className="mono" style={{fontSize:31,fontWeight:700,letterSpacing:-1,color:getMonBal(selMon)>=0?"#34D399":"#F87171"}}>{fmtC(getMonBal(selMon))}</p>
+              <p className="mono" style={{fontSize:31,fontWeight:700,letterSpacing:-1,color:selMon>currentYM?"#818CF8":getMonBal(selMon)>=0?"#34D399":"#F87171"}}>{fmtC(getMonBal(selMon))}</p>
+              {selMon>currentYM&&<p style={{fontSize:10,color:"#475569",marginTop:3}}>Baseado em recorrentes ativas</p>}
               <div style={{display:"flex",gap:6,marginTop:12}}>
-                {[[T.income,income,"#34D399"],[T.expenses,expenses,"#F87171"],[T.toPay,totPend,"#F59E0B"]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:"#0D1220",borderRadius:11,padding:"8px 9px"}}><p style={{fontSize:9,color:"#64748B",marginBottom:2,fontWeight:700}}>↕ {l}</p><p className="mono" style={{fontSize:13,fontWeight:700,color:c}}>{fmtC(v)}</p></div>))}
+                {selMon>currentYM
+                  ? [[T.income,getMonBal(selMon)>0?getMonBal(selMon):0,"#818CF8"],[T.expenses,getMonBal(selMon)<0?Math.abs(getMonBal(selMon)):0,"#818CF8"],[T.toPay,totPend,"#F59E0B"]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:"#0D1220",borderRadius:11,padding:"8px 9px"}}><p style={{fontSize:9,color:"#64748B",marginBottom:2,fontWeight:700}}>↕ {l}</p><p className="mono" style={{fontSize:13,fontWeight:700,color:c}}>{fmtC(v)}</p></div>))
+                  : [[T.income,income,"#34D399"],[T.expenses,expenses,"#F87171"],[T.toPay,totPend,"#F59E0B"]].map(([l,v,c])=>(<div key={l} style={{flex:1,background:"#0D1220",borderRadius:11,padding:"8px 9px"}}><p style={{fontSize:9,color:"#64748B",marginBottom:2,fontWeight:700}}>↕ {l}</p><p className="mono" style={{fontSize:13,fontWeight:700,color:c}}>{fmtC(v)}</p></div>))
+                }
               </div>
               <button onClick={()=>{setEditBM(selMon);setTmpBal(String(getMonBal(selMon)));setModal("balAdj");}} style={{marginTop:10,background:"none",border:"1px dashed #2A3A55",color:"#475569",borderRadius:9,padding:"5px 12px",fontSize:10,cursor:"pointer",fontWeight:700,display:"flex",alignItems:"center",gap:4}}>{T.adjustMonthBtn}</button>
             </div>
@@ -696,7 +832,44 @@ function App(){
                 <h3 style={{fontSize:14,fontWeight:800}}>{T.history}</h3>
                 <button onClick={()=>setShowHist(p=>!p)} style={{background:"none",border:"none",color:"#475569",fontSize:11,cursor:"pointer",fontWeight:700}}>{showHist?T.hide:T.show}</button>
               </div>
-              {showHist&&(()=>{const mx=Math.max(...histMons.map(m=>Math.abs(m.balance)),1);return(<div><div style={{display:"flex",gap:5,alignItems:"flex-end",height:70,marginBottom:10}}>{histMons.map(m=>(<div key={m.ym} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><p className="mono" style={{fontSize:9,color:m.balance>=0?"#34D399":"#F87171",fontWeight:600}}>{fmtS(m.balance)}</p><div style={{width:"100%",height:50,display:"flex",alignItems:"flex-end"}}><div style={{width:"100%",height:`${Math.max(Math.abs(m.balance)/mx*100,6)}%`,borderRadius:"4px 4px 0 0",transition:"height .5s",opacity:m.ym===selMon?1:.5,background:`linear-gradient(180deg,${m.balance>=0?"#34D399":"#F87171"},${m.balance>=0?"#059669":"#DC2626"})`}}/></div><p style={{fontSize:9,color:"#475569",fontWeight:700}}>{m.label}</p></div>))}</div>{histMons.map(m=>(<div key={m.ym} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #111827"}}><div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontSize:12,fontWeight:700,color:"#64748B"}}>{m.label}</span>{m.adjusted&&<span className="pill" style={{background:"#F59E0B15",color:"#F59E0B",border:"1px solid #F59E0B30"}}>✏️</span>}</div><div style={{display:"flex",gap:5,alignItems:"center"}}><span className="mono" style={{fontSize:13,fontWeight:700,color:m.balance>=0?"#34D399":"#F87171"}}>{fmtC(m.balance)}</span><button onClick={()=>{setEditBM(m.ym);setTmpBal(String(m.balance));setModal("balAdj");}} style={{background:"#1A2640",border:"none",color:"#64748B",borderRadius:7,padding:"3px 7px",fontSize:11,cursor:"pointer"}}>✏️</button>{m.adjusted&&<button onClick={()=>rmBal(m.ym)} style={{background:"#1A2640",border:"none",color:"#EF4444",borderRadius:7,padding:"3px 7px",fontSize:11,cursor:"pointer"}}>↺</button>}</div></div>))}</div>);})()}
+              {showHist&&(()=>{
+                const mx=Math.max(...histMons.map(m=>Math.abs(m.balance)),1);
+                return(
+                  <div>
+                    <div style={{display:"flex",gap:5,alignItems:"flex-end",height:70,marginBottom:10}}>
+                      {histMons.map(m=>(
+                        <div key={m.ym} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                          <p className="mono" style={{fontSize:9,color:m.isFuture?"#818CF8":m.balance>=0?"#34D399":"#F87171",fontWeight:600}}>{fmtS(m.balance)}</p>
+                          <div style={{width:"100%",height:50,display:"flex",alignItems:"flex-end"}}>
+                            <div style={{width:"100%",height:`${Math.max(Math.abs(m.balance)/mx*100,6)}%`,borderRadius:"4px 4px 0 0",transition:"height .5s",opacity:m.ym===selMon?1:.45,
+                              background:m.isFuture
+                                ?"linear-gradient(180deg,#6366F1,#4338CA)"
+                                :`linear-gradient(180deg,${m.balance>=0?"#34D399":"#F87171"},${m.balance>=0?"#059669":"#DC2626"})`,
+                              border:m.isFuture?"1px dashed #6366F160":"none",
+                              boxSizing:"border-box"
+                            }}/>
+                          </div>
+                          <p style={{fontSize:9,color:m.isFuture?"#6366F180":"#475569",fontWeight:700}}>{m.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {histMons.map(m=>(
+                      <div key={m.ym} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #111827",opacity:m.isFuture?0.75:1}}>
+                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                          <span style={{fontSize:12,fontWeight:700,color:m.isFuture?"#6366F190":"#64748B"}}>{m.label}</span>
+                          {m.isFuture&&<span className="pill" style={{background:"#6366F118",color:"#818CF8",border:"1px solid #6366F130",fontSize:9}}>▷</span>}
+                          {m.adjusted&&<span className="pill" style={{background:"#F59E0B15",color:"#F59E0B",border:"1px solid #F59E0B30"}}>✏️</span>}
+                        </div>
+                        <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                          <span className="mono" style={{fontSize:13,fontWeight:700,color:m.isFuture?"#818CF8":m.balance>=0?"#34D399":"#F87171"}}>{fmtC(m.balance)}</span>
+                          <button onClick={()=>{setEditBM(m.ym);setTmpBal(String(m.balance));setModal("balAdj");}} style={{background:"#1A2640",border:"none",color:"#64748B",borderRadius:7,padding:"3px 7px",fontSize:11,cursor:"pointer"}}>✏️</button>
+                          {m.adjusted&&<button onClick={()=>rmBal(m.ym)} style={{background:"#1A2640",border:"none",color:"#EF4444",borderRadius:7,padding:"3px 7px",fontSize:11,cursor:"pointer"}}>↺</button>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
             {(()=>{const recs=txs.filter(t=>t.recurrent&&t.status==="pending");if(!recs.length)return null;return(<div className="card"><h3 style={{fontSize:14,fontWeight:800,marginBottom:10}}>{T.recurringPending}</h3>{recs.map(t=>{const acc=getTxAccountMeta(t);return(<div key={t.id} style={{display:"flex",gap:9,alignItems:"center",padding:"8px 0",borderBottom:"1px solid #111827"}}><div style={{width:36,height:36,borderRadius:11,background:getCatById(allCats,t.cat).color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{getCatById(allCats,t.cat).icon}</div><div style={{flex:1,minWidth:0}}><p style={{fontSize:13,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}</p><p style={{fontSize:10,color:"#64748B"}}>🔁 {t.recurrence==="monthly"?T.monthly:t.recurrence==="weekly"?T.weekly:T.yearly}{acc?` · ${acc.icon} ${acc.name}`:""}</p></div><div style={{textAlign:"right",flexShrink:0}}><p className="mono" style={{fontSize:13,fontWeight:700,color:"#F87171"}}>{fmtC(t.amount)}</p><button onClick={()=>markPaid(t.id)} style={{background:"#34D39920",border:"1px solid #34D39950",color:"#34D399",borderRadius:7,padding:"2px 6px",fontSize:9,cursor:"pointer",fontWeight:700,marginTop:2}}>{T.payBtn}</button></div></div>);})}</div>);})()}
           </div>
@@ -708,7 +881,9 @@ function App(){
             <h2 style={{fontSize:19,fontWeight:800,padding:"12px 0 10px"}}>{T.transactions}</h2>
             <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:11}}>
               <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2}}>
-                {ALL_MONTHS.map(ym=>(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"4px 11px",borderRadius:20,border:"1.5px solid",whiteSpace:"nowrap",borderColor:selMon===ym?"#6366F1":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":"#475569",fontSize:10,fontWeight:700,cursor:"pointer"}}>{MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4)}</button>))}
+                {ALL_MONTHS.map(ym=>{const isFut=ym>currentYM;return(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"4px 11px",borderRadius:20,border:`1.5px ${isFut?"dashed":"solid"}`,whiteSpace:"nowrap",borderColor:selMon===ym?"#6366F1":isFut?"#2A3A55":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":isFut?"#475569":"#475569",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                  {MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4)}{isFut&&<span style={{fontSize:8,marginLeft:2,color:"#6366F180"}}>▷</span>}
+                </button>);})}
               </div>
               <div className="seg">
                 {[[T.all,"all"],[T.pending,"pending"],[T.paid,"paid"]].map(([l,v])=>(<button key={v} className={`seg-b ${fStatus===v?"on":"off"}`} onClick={()=>setFStatus(v)}>{l}</button>))}
@@ -718,12 +893,34 @@ function App(){
                 {accs.map(a=>(<button key={a.id} onClick={()=>setFAcc(a.id)} style={{padding:"3px 9px",borderRadius:20,border:"1.5px solid",whiteSpace:"nowrap",borderColor:fAcc===a.id?a.color:"#1A2640",background:fAcc===a.id?a.color+"20":"transparent",color:fAcc===a.id?a.color:"#475569",fontSize:9,fontWeight:700,cursor:"pointer"}}>{a.icon} {a.name}</button>))}
               </div>
             </div>
+            {selMon>currentYM&&filtTx.length>0&&(
+              <div style={{background:"#6366F112",border:"1px dashed #6366F140",borderRadius:13,padding:"8px 13px",marginBottom:10,display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{fontSize:16}}>▷</span>
+                <p style={{fontSize:11,color:"#818CF8",fontWeight:700}}>Projeção de recorrentes para {MONTHS_BASE[parseInt(selMon.split("-")[1])-1]}/{selMon.slice(2,4)}</p>
+              </div>
+            )}
             {filtTx.length===0&&(<div style={{textAlign:"center",padding:"50px 0",color:"#475569"}}><div style={{fontSize:36,marginBottom:10}}>📭</div><p style={{fontWeight:700}}>{T.noTx}</p></div>)}
             {filtTx.map(t=>{
               const cat=getCatById(allCats,t.cat);
               const acc=getTxAccountMeta(t);const d=t.status==="pending"?ddiff(t.dueDate):null;
               const isTransfer=t.type==="transfer_in"||t.type==="transfer_out";
-              return(<div key={t.id} onClick={()=>{setDetTx(t);setModal("txDet");}} style={{background:"#0D1526",borderRadius:16,padding:12,marginBottom:7,display:"flex",gap:9,alignItems:"center",cursor:"pointer",border:"1px solid",borderColor:t.status==="pending"&&d!==null&&d<0?"#EF444435":"#1A2640"}}><div style={{width:40,height:40,borderRadius:12,background:cat.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{cat.icon}</div><div style={{flex:1,minWidth:0}}><p style={{fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}{t.recurrent&&<span style={{marginLeft:4,fontSize:10,color:"#64748B"}}>🔁</span>}{isTransfer&&<span style={{marginLeft:4,fontSize:10,color:"#87CEEB"}}>🔄</span>}</p><div style={{display:"flex",gap:5,marginTop:3,flexWrap:"wrap",alignItems:"center"}}><span style={{fontSize:9,color:"#475569"}}>{new Date(t.date+"T12:00:00").toLocaleDateString()}</span>{acc&&<span style={{fontSize:9,color:acc.color,fontWeight:700}}>{acc.icon}</span>}<span className="pill" style={{background:t.status==="paid"?"#34D39918":"#F59E0B18",color:t.status==="paid"?"#34D399":"#F59E0B",border:`1px solid ${t.status==="paid"?"#34D39940":"#F59E0B40"}`}}>{t.status==="paid"?T.paidL:T.paying}</span>{d!==null&&d<0&&<span className="pill" style={{background:"#EF444418",color:"#F87171",border:"1px solid #EF444440"}}>{T.overdueLbl}</span>}</div></div><p className="mono" style={{fontSize:14,fontWeight:700,flexShrink:0,color:t.type==="income"||t.type==="transfer_in"?"#34D399":t.status==="pending"?"#F59E0B":"#F87171"}}>{t.type==="income"||t.type==="transfer_in"?"+":"-"}{fmtC(t.amount)}</p></div>);
+              const isProj=!!t._isProjection;
+              return(<div key={t.id} onClick={()=>{if(!isProj){setDetTx(t);setModal("txDet");}}} style={{background:isProj?"#0D152A":"#0D1526",borderRadius:16,padding:12,marginBottom:7,display:"flex",gap:9,alignItems:"center",cursor:isProj?"default":"pointer",border:"1px solid",borderColor:isProj?"#6366F130":t.status==="pending"&&d!==null&&d<0?"#EF444435":"#1A2640",opacity:isProj?0.8:1}}>
+                <div style={{width:40,height:40,borderRadius:12,background:cat.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{cat.icon}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}{t.recurrent&&<span style={{marginLeft:4,fontSize:10,color:"#64748B"}}>🔁</span>}{isTransfer&&<span style={{marginLeft:4,fontSize:10,color:"#87CEEB"}}>🔄</span>}</p>
+                  <div style={{display:"flex",gap:5,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
+                    <span style={{fontSize:9,color:"#475569"}}>{new Date(t.date+"T12:00:00").toLocaleDateString()}</span>
+                    {acc&&<span style={{fontSize:9,color:acc.color,fontWeight:700}}>{acc.icon}</span>}
+                    {isProj
+                      ? <span className="pill" style={{background:"#6366F118",color:"#818CF8",border:"1px solid #6366F130"}}>▷ projeção</span>
+                      : <span className="pill" style={{background:t.status==="paid"?"#34D39918":"#F59E0B18",color:t.status==="paid"?"#34D399":"#F59E0B",border:`1px solid ${t.status==="paid"?"#34D39940":"#F59E0B40"}`}}>{t.status==="paid"?T.paidL:T.paying}</span>
+                    }
+                    {d!==null&&d<0&&!isProj&&<span className="pill" style={{background:"#EF444418",color:"#F87171",border:"1px solid #EF444440"}}>{T.overdueLbl}</span>}
+                  </div>
+                </div>
+                <p className="mono" style={{fontSize:14,fontWeight:700,flexShrink:0,color:isProj?"#818CF8":t.type==="income"||t.type==="transfer_in"?"#34D399":t.status==="pending"?"#F59E0B":"#F87171"}}>{t.type==="income"||t.type==="transfer_in"?"+":"-"}{fmtC(t.amount)}</p>
+              </div>);
             })}
           </div>
         )}
@@ -913,9 +1110,22 @@ function App(){
           <div style={{display:"flex",flexDirection:"column",gap:11}}>
             <div><label>{T.description}</label><input placeholder={T.descPh} value={form.desc} onChange={e=>setForm(f=>({...f,desc:e.target.value}))}/></div>
             <div style={{display:"flex",gap:8}}>
-              <div style={{flex:1}}><label>{T.amount} ({CURR.symbol})</label><input type="number" inputMode="decimal" placeholder="0,00" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))}/></div>
+              <div style={{flex:1}}><label>{form.installments?`VALOR TOTAL (${CURR.symbol})`:T.amount+` (${CURR.symbol})`}</label><input type="number" inputMode="decimal" placeholder="0,00" value={form.installments?(form.installmentTotal||""):(form.amount)} onChange={e=>form.installments?setForm(f=>({...f,installmentTotal:e.target.value,amount:round2((parseFloat(e.target.value)||0)/(f.installCount||2))})):setForm(f=>({...f,amount:e.target.value}))}/></div>
               <div style={{flex:1}}><label>{T.account}</label><select value={form.accountId} onChange={e=>setForm(f=>({...f,accountId:e.target.value}))}>{accs.map(a=><option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}</select></div>
             </div>
+            {form.installments&&form.installmentTotal&&parseFloat(form.installmentTotal)>0&&(
+              <div style={{background:"#111827",borderRadius:12,padding:"9px 13px",marginTop:-4}}>
+                <p style={{fontSize:10,color:"#64748B",marginBottom:4,fontWeight:700}}>PRÉVIA DAS PARCELAS</p>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontSize:12,color:"#94A3B8"}}>{form.installCount}x de</span>
+                  <span className="mono" style={{fontSize:16,fontWeight:800,color:"#F59E0B"}}>{fmtC(round2((parseFloat(form.installmentTotal)||0)/form.installCount))}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:3}}>
+                  <span style={{fontSize:11,color:"#475569"}}>Total</span>
+                  <span className="mono" style={{fontSize:12,color:"#64748B"}}>{fmtC(parseFloat(form.installmentTotal)||0)}</span>
+                </div>
+              </div>
+            )}
             <div style={{display:"flex",gap:8}}>
               <div style={{flex:1}}><label>{T.category}</label>
                 <select value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))}>
@@ -936,9 +1146,9 @@ function App(){
               <div style={{background:"#111827",borderRadius:12,padding:11}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:form.installments?9:0}}>
                   <span style={{fontSize:12,fontWeight:700,color:"#94A3B8"}}>{T.installments}</span>
-                  <Toggle val={form.installments} onChange={v=>setForm(f=>({...f,installments:v,recurrent:v?false:f.recurrent}))}/>
+                  <Toggle val={form.installments} onChange={v=>setForm(f=>({...f,installments:v,installmentTotal:"",amount:v?"":f.amount,recurrent:v?false:f.recurrent}))}/>
                 </div>
-                {form.installments&&<div><label>{T.installCount}</label><input type="number" inputMode="numeric" min={2} max={48} value={form.installCount} onChange={e=>setForm(f=>({...f,installCount:parseInt(e.target.value)||2}))}/></div>}
+                {form.installments&&<div><label>{T.installCount}</label><input type="number" inputMode="numeric" min={2} max={48} value={form.installCount} onChange={e=>{const n=parseInt(e.target.value)||2;setForm(f=>({...f,installCount:n,amount:f.installmentTotal?round2((parseFloat(f.installmentTotal)||0)/n):f.amount}));}}/></div>}
               </div>
             )}
             <div style={{background:"#111827",borderRadius:12,padding:11}}>
