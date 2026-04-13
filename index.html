@@ -8,840 +8,527 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Finance Real"/>
-<meta name="application-name" content="Finance Real"/>
 <title>Finance Real</title>
 <script>
 (function(){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1a1f35"/><stop offset="100%" stop-color="#080C18"/></linearGradient></defs><rect width="512" height="512" rx="110" fill="url(#g)"/><text x="256" y="335" text-anchor="middle" font-family="Georgia,serif" font-size="270" font-weight="700" fill="#6366F1">$</text><line x1="256" y1="95" x2="256" y2="145" stroke="#6366F1" stroke-width="24" stroke-linecap="round"/><line x1="256" y1="368" x2="256" y2="418" stroke="#6366F1" stroke-width="24" stroke-linecap="round"/></svg>`;
   const ic='data:image/svg+xml,'+encodeURIComponent(svg);
-  const m={name:"Finance Real",short_name:"Finance Real",description:"Controle de finanças pessoais",start_url:"./",display:"standalone",orientation:"portrait",background_color:"#080C18",theme_color:"#080C18",lang:"pt-BR",icons:[{src:ic,sizes:"192x192",type:"image/svg+xml",purpose:"any maskable"},{src:ic,sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"}]};
+  const m={name:"Finance Real",short_name:"Finance Real",start_url:"./",display:"standalone",background_color:"#080C18",theme_color:"#080C18",icons:[{src:ic,sizes:"512x512",type:"image/svg+xml"}]};
   const l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));document.head.appendChild(l);
   const a=document.createElement('link');a.rel='apple-touch-icon';a.href=ic;document.head.appendChild(a);
   const f=document.createElement('link');f.rel='icon';f.type='image/svg+xml';f.href=ic;document.head.appendChild(f);
 })();
 </script>
-<script>
-if('serviceWorker' in navigator){
-  const c=`const CACHE='fr-v5';self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['/']).catch(()=>{})));self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('<h1>Finance Real — Offline</h1>',{headers:{'Content-Type':'text/html'}}))));});`;
-  navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'}))).catch(()=>{});
-}
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body,#root{height:100%;background:#080C18;overflow:hidden;max-width:100vw}
-  body{overscroll-behavior:none;-webkit-overflow-scrolling:touch;font-family:'Syne',sans-serif}
-  ::-webkit-scrollbar{display:none}
-  input,select,button,textarea{font-family:'Syne',sans-serif;-webkit-appearance:none;appearance:none}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body,#root{height:100%;background:#080C18;overflow:hidden;max-width:100vw}
+body{overscroll-behavior:none;-webkit-overflow-scrolling:touch;font-family:'Syne',sans-serif}
+::-webkit-scrollbar{display:none}
+input,select,button,textarea{font-family:'Syne',sans-serif;-webkit-appearance:none;appearance:none}
 </style>
 </head>
 <body><div id="root"></div>
 <script type="text/babel">
 const {useState,useEffect,useCallback,useRef,useMemo}=React;
 
-const FR_PRIVATE_MODE = true;
-const GOOGLE_DRIVE_CONFIG = {
-  CLIENT_ID: "COLE_AQUI_O_SEU_CLIENT_ID.apps.googleusercontent.com",
-  SCOPES: "https://www.googleapis.com/auth/drive.appdata",
-  BACKUP_SPACE: "appDataFolder",
-  FILE_PREFIX: "FinanceRealBackup",
-  APP_LABEL: "Finance Real Private"
-};
-
+/* \u2500\u2500 i18n (pt only for brevity \u2014 other langs keep same structure) \u2500\u2500 */
 const I18N={
   pt:{
-    appName:"Finance Real",lang:"Português",flag:"🇧🇷",
-    home:"INÍCIO",extract:"EXTRATO",alerts:"ALERTAS",settings:"CONFIG",user:"USUÁRIO",
-    totalAssets:"Patrimônio total",result:"RESULTADO",income:"RECEITAS",expenses:"DESPESAS",
-    toPay:"A PAGAR",accounts:"Contas & Cartões",newAccount:"+ Nova",history:"Histórico Mensal",
-    hide:"▲ Ocultar",show:"▼ Exibir",recurringPending:"🔁 Recorrentes Pendentes",
-    transactions:"Lançamentos",all:"TODOS",pending:"A PAGAR",paid:"PAGOS",all2:"Todas",
-    noTx:"Nenhum lançamento",alertsTitle:"Alertas",allGood:"Tudo em dia!",noPending:"Nenhuma conta pendente.",
-    overdue:"🚨 VENCIDAS",dueSoon:"⚠️ VENCENDO EM BREVE",upcoming:"📅 PRÓXIMOS VENCIMENTOS",
-    settings2:"Configurações",backup:"☁️ BACKUP GOOGLE DRIVE",status:"Status Drive",connected:"● Conectado",
-    disconnected:"● Desconectado",connect:"Conectar",frequency:"Frequência de Backup",lastBackup:"Último backup",
-    exportNow:"☁️ Exportar Backup Agora",restore:"🔄 RESTAURAR BACKUP",restoreBtn:"📂 Selecionar arquivo de backup",
-    restoreWarn:"⚠️ Atenção: restaurar irá SOBRESCREVER todos os dados atuais. Deseja continuar?",
-    restoreConfirm:"Sim, restaurar",restoreCancel:"Cancelar",restoreOk:"Dados restaurados com sucesso ✓",
-    accountsSect:"🏦 CONTAS & CARTÕES",histSect:"📊 AJUSTE SALDO HISTÓRICO",
-    installSect:"📱 INSTALAR APP",installBtn:"📲 Instalar no Android",installDesc:"Instale o Finance Real no seu Android para acesso rápido e uso offline.",
+    appName:"Finance Real",lang:"Portugu\u00eas",flag:"\ud83c\udde7\ud83c\uddf7",
+    home:"IN\u00cdCIO",extract:"EXTRATO",alerts:"ALERTAS",settings:"CONFIG",user:"USU\u00c1RIO",
+    totalAssets:"Patrim\u00f4nio total",result:"RESULTADO",income:"RECEITAS",expenses:"DESPESAS",
+    toPay:"A PAGAR",accounts:"Contas & Cart\u00f5es",newAccount:"+ Nova",history:"Hist\u00f3rico Mensal",
+    hide:"\u25b2 Ocultar",show:"\u25bc Exibir",recurringPending:"\ud83d\udd01 Recorrentes Pendentes",
+    transactions:"Lan\u00e7amentos",all:"TODOS",pending:"A PAGAR",paid:"PAGOS",all2:"Todas",
+    noTx:"Nenhum lan\u00e7amento",alertsTitle:"Alertas",allGood:"Tudo em dia!",noPending:"Nenhuma conta pendente.",
+    overdue:"\ud83d\udea8 VENCIDAS",dueSoon:"\u26a0\ufe0f VENCENDO EM BREVE",upcoming:"\ud83d\udcc5 PR\u00d3XIMOS VENCIMENTOS",
+    settings2:"Configura\u00e7\u00f5es",backup:"\u2601\ufe0f BACKUP",accountsSect:"\ud83c\udfe6 CONTAS & CART\u00d5ES",histSect:"\ud83d\udcca AJUSTE SALDO HIST\u00d3RICO",
     adjustMonth:"Ajustar Saldo Mensal",calculated:"Calculado",corrected:"Saldo corrigido",
-    adjustHint:"Use para corrigir discrepâncias, adicionar saldo inicial ou conciliar com extrato bancário.",
-    save:"Salvar Ajuste",removeAdj:"↺ Remover e usar cálculo automático",
-    newTx:"Novo Lançamento",expenseBtn:"💸 Despesa",incomeBtn:"💰 Receita",transferBtn:"🔄 Transferência",
-    description:"Descrição",descPh:"Ex: Conta de luz",amount:"Valor",account:"Conta",
+    adjustHint:"Use para corrigir discrep\u00e2ncias ou conciliar com extrato banc\u00e1rio.",
+    save:"Salvar",removeAdj:"\u21ba Remover ajuste manual",
+    newTx:"Novo Lan\u00e7amento",expenseBtn:"\ud83d\udcb8 Despesa",incomeBtn:"\ud83d\udcb0 Receita",transferBtn:"\ud83d\udd04 Transfer\u00eancia",
+    description:"Descri\u00e7\u00e3o",descPh:"Ex: Conta de luz",amount:"Valor",account:"Conta",
     fromAccount:"Conta de origem",toAccount:"Conta de destino",
     category:"Categoria",statusL:"Status",dueDate:"Vencimento",
-    recurrent:"🔁 Recorrente",installments:"💳 Parcelado",scheduled:"📅 Agendar para",
+    recurrent:"\ud83d\udd01 Recorrente",installments:"\ud83d\udcb3 Parcelado",scheduled:"\ud83d\udcc5 Agendar para",
     weekly:"Semanal",monthly:"Mensal",yearly:"Anual",
-    installCount:"Nº de parcelas",addTx:"Adicionar Lançamento",createParcels:"Criar {n} parcelas",
-    addTransfer:"Registrar Transferência",
+    installCount:"N\u00ba de parcelas",addTx:"Adicionar",createParcels:"Criar {n} parcelas",
+    addTransfer:"Registrar Transfer\u00eancia",
     newAcc:"Nova Conta",accName:"Nome",accNamePh:"Ex: Bradesco",accType:"Tipo",
-    checking:"🏦 Conta Corrente",savings:"🐷 Poupança",credit:"💳 Cartão de Crédito",
-    initBal:"Saldo inicial",icon:"Ícone",color:"Cor",includeTotal:"Incluir no total patrimonial",addAcc:"Adicionar Conta",
-    details:"Detalhes",value:"Valor",type:"Tipo",incomeL:"💰 Receita",expenseL:"💸 Despesa",transferL:"🔄 Transferência",
-    date:"Data",recurrence:"Recorrência",markPaid:"✓ Marcar como Pago",delete:"🗑",
-    paying:"⏳ Pendente",paidL:"✓ Pago",overdueLbl:"VENC",
-    daysAgo:"Venceu há {n}d",today:"Vence HOJE!",inDays:"Vence em {n}d",
-    payBtn:"PAGAR",manual:"✏️ Manual",adjustMonthBtn:"✏️ Ajustar saldo do mês",
-    backupModal:"☁️ Backup",driveConnected:"Drive conectado. Backups automáticos ativos.",
-    driveDisconn:"Conecte o Drive para backups automáticos.",connectDrive:"🔗 Conectar Google Drive",
-    exportBackup:"📥 Exportar Backup",backupNote:"Arquivo salvo com timestamp — envie ao Google Drive ou use integração automática.",
-    txAdded:"Lançamento adicionado ✓",parcelsAdded:"{n} parcelas adicionadas ✓",transferAdded:"Transferência registrada ✓",
-    accAdded:"Conta adicionada ✓",paidOk:"Pago ✓",removed:"Removido",adjSaved:"Saldo ajustado ✓",adjRemoved:"Ajuste removido",
-    backupOk:"Backup exportado! ☁️",driveOk:"Google Drive conectado ✓",driveConn:"Conectando ao Google Drive...",
-    userTitle:"Perfil do Usuário",langSect:"🌐 IDIOMA",currSect:"💱 MOEDA",
-    secSect:"🔒 SEGURANÇA",pinEnable:"Senha de acesso (PIN)",pinSet:"Definir PIN",pinChange:"Alterar PIN",
-    biometric:"Usar biometria (digital / face)",biometricNote:"Disponível se o dispositivo suportar WebAuthn",
-    tipsSect:"💡 DICAS FINANCEIRAS",tipsEnable:"Dicas ao abrir o app",tipsNote:"Exibe uma dica de inteligência financeira ao iniciar",
-    donateSect:"💖 APOIE O APP",donateTitle:"Support This App",
-    donateSub:"☕ Buy Me a Coffee",donateDesc:"Se este app facilitou sua vida, considere apoiar o desenvolvimento.",
-    whyTitle:"❤️ Por que apoiar?",why1:"Manter o app gratuito e acessível",why2:"Novos recursos e melhorias",why3:"Apoiar um desenvolvedor independente",why4:"Sem anúncios ou monetização invasiva",
-    thankTitle:"🙏 Obrigado",thankDesc:"Seu apoio não é só financeiro — é motivação. My e-mail: clvy@hotmail.com",
-    coffee:"☕ Uma vez (café)",coffeePrice:"U$ 20",coffeeDesc:"Uma contribuição generosa para o desenvolvimento",
-    annual:"⭐ Apoiador Anual",annualPrice:"U$ 10",annualDesc:"Sustente o app a longo prazo com baixo custo",
-    monthly2:"🔁 Apoiador Mensal",monthlyPrice:"U$ 1",monthlyDesc:"A forma mais fácil de apoiar continuamente",
-    mostPopular:"⭐ MAIS POPULAR",supportBtn:"Apoiar agora",
-    thankYouMsg:"Obrigado pelo seu apoio! ❤️",supporterBadge:"Apoiador 💖",
-    pinTitle:"PIN de Acesso",pinEnterNew:"Digite o novo PIN (4 dígitos)",pinConfirm:"Confirme o PIN",pinSaved:"PIN definido ✓",pinMismatch:"PINs não coincidem",pinWrong:"PIN incorreto",
-    pinUnlock:"Digite seu PIN para acessar",unlock:"Desbloquear",tipOf:"💡 Dica do dia",
-    // CATEGORIES MANAGEMENT
-    catSect:"🏷️ CATEGORIAS",catNew:"+ Nova categoria",catName:"Nome da categoria",catIcon:"Ícone (emoji)",catColor:"Cor",catType:"Tipo",catBoth:"Ambos",catIncome:"Receita",catExpense:"Despesa",
-    catAdd:"Adicionar Categoria",catAdded:"Categoria criada ✓",catDeleted:"Categoria excluída",catRenamed:"Categoria renomeada ✓",
-    catEdit:"Editar",catDelete:"Excluir",catDeleteWarn:"Ao excluir, lançamentos com essa categoria ficarão sem categoria.",
-    catBuiltin:"Padrão (não pode ser excluída)",catCustom:"Personalizada",
-    transferSect:"🔄 TRANSFERÊNCIA",sameAccountErr:"Origem e destino devem ser diferentes",
+    checking:"\ud83c\udfe6 Conta Corrente",savings:"\ud83d\udc37 Poupan\u00e7a",credit:"\ud83d\udcb3 Cart\u00e3o de Cr\u00e9dito",
+    initBal:"Saldo inicial",icon:"\u00cdcone",color:"Cor",includeTotal:"Incluir no total patrimonial",addAcc:"Adicionar Conta",
+    details:"Detalhes",value:"Valor",type:"Tipo",incomeL:"\ud83d\udcb0 Receita",expenseL:"\ud83d\udcb8 Despesa",transferL:"\ud83d\udd04 Transfer\u00eancia",
+    date:"Data",recurrence:"Recorr\u00eancia",markPaid:"\u2713 Marcar como Pago",delete:"\ud83d\uddd1 Excluir",edit:"\u270f\ufe0f Editar",
+    paying:"\u23f3 Pendente",paidL:"\u2713 Pago",overdueLbl:"VENC",
+    daysAgo:"Venceu h\u00e1 {n}d",today:"Vence HOJE!",inDays:"Vence em {n}d",
+    payBtn:"PAGAR",manual:"\u270f\ufe0f Manual",
+    txAdded:"Lan\u00e7amento adicionado \u2713",parcelsAdded:"{n} parcelas adicionadas \u2713",transferAdded:"Transfer\u00eancia registrada \u2713",
+    accAdded:"Conta adicionada \u2713",paidOk:"Pago \u2713",removed:"Removido",adjSaved:"Saldo ajustado \u2713",adjRemoved:"Ajuste removido",
+    backupOk:"Backup exportado! \u2601\ufe0f",
+    userTitle:"Perfil do Usu\u00e1rio",langSect:"\ud83c\udf10 IDIOMA",currSect:"\ud83d\udcb1 MOEDA",
+    catSect:"\ud83c\udff7\ufe0f CATEGORIAS",catNew:"+ Nova categoria",catName:"Nome da categoria",catIcon:"\u00cdcone (emoji)",catColor:"Cor",catType:"Tipo",catBoth:"Ambos",catIncome:"Receita",catExpense:"Despesa",
+    catAdd:"Adicionar Categoria",catAdded:"Categoria criada \u2713",catDeleted:"Categoria exclu\u00edda",catRenamed:"Categoria renomeada \u2713",
+    catEdit:"Editar",catDelete:"Excluir",catBuiltin:"Padr\u00e3o",catCustom:"Personalizada",
+    transferSect:"\ud83d\udd04 TRANSFER\u00caNCIA",sameAccountErr:"Origem e destino devem ser diferentes",
+    recurringPendingStrip:"Recorrentes pendentes",
+    // Edit tx
+    editTx:"Editar Lan\u00e7amento",editTxSaved:"Lan\u00e7amento atualizado \u2713",
+    // Delete options
+    deleteTitle:"Excluir Lan\u00e7amento",deleteOnlyThis:"Somente este",deleteThisAndFuture:"Este e futuros",deleteAll:"Todos da s\u00e9rie",deleteConfirm:"Confirmar exclus\u00e3o",
+    // Series
+    partOfSeries:"Parte de uma s\u00e9rie",seriesInfo:"{n} lan\u00e7amentos na s\u00e9rie",
+    tipOf:"\ud83d\udca1 Dica do dia",
+    recurringIncome:"\ud83d\udd01 Receitas Recorrentes",
   },
   en:{
-    appName:"Finance Real",lang:"English",flag:"🇺🇸",
+    appName:"Finance Real",lang:"English",flag:"\ud83c\uddfa\ud83c\uddf8",
     home:"HOME",extract:"LEDGER",alerts:"ALERTS",settings:"CONFIG",user:"USER",
     totalAssets:"Total assets",result:"RESULT",income:"INCOME",expenses:"EXPENSES",
     toPay:"TO PAY",accounts:"Accounts & Cards",newAccount:"+ New",history:"Monthly History",
-    hide:"▲ Hide",show:"▼ Show",recurringPending:"🔁 Pending Recurring",
+    hide:"\u25b2 Hide",show:"\u25bc Show",recurringPending:"\ud83d\udd01 Pending Recurring",
     transactions:"Transactions",all:"ALL",pending:"TO PAY",paid:"PAID",all2:"All",
     noTx:"No transactions",alertsTitle:"Alerts",allGood:"All clear!",noPending:"No pending bills.",
-    overdue:"🚨 OVERDUE",dueSoon:"⚠️ DUE SOON",upcoming:"📅 UPCOMING",
-    settings2:"Settings",backup:"☁️ GOOGLE DRIVE BACKUP",status:"Drive status",connected:"● Connected",
-    disconnected:"● Disconnected",connect:"Connect",frequency:"Backup Frequency",lastBackup:"Last backup",
-    exportNow:"☁️ Export Backup Now",restore:"🔄 RESTORE BACKUP",restoreBtn:"📂 Select backup file",
-    restoreWarn:"⚠️ Warning: restoring will OVERWRITE all current data. Do you want to continue?",
-    restoreConfirm:"Yes, restore",restoreCancel:"Cancel",restoreOk:"Data restored successfully ✓",
-    accountsSect:"🏦 ACCOUNTS & CARDS",histSect:"📊 MONTHLY BALANCE ADJUSTMENT",
-    installSect:"📱 INSTALL APP",installBtn:"📲 Install on Android",installDesc:"Install Finance Real on your Android for quick access and offline use.",
+    overdue:"\ud83d\udea8 OVERDUE",dueSoon:"\u26a0\ufe0f DUE SOON",upcoming:"\ud83d\udcc5 UPCOMING",
+    settings2:"Settings",backup:"\u2601\ufe0f BACKUP",accountsSect:"\ud83c\udfe6 ACCOUNTS & CARDS",histSect:"\ud83d\udcca MONTHLY BALANCE ADJUSTMENT",
     adjustMonth:"Adjust Monthly Balance",calculated:"Calculated",corrected:"Corrected balance",
-    adjustHint:"Use to fix discrepancies, add initial balance or reconcile with bank statement.",
-    save:"Save Adjustment",removeAdj:"↺ Remove and use automatic calculation",
-    newTx:"New Transaction",expenseBtn:"💸 Expense",incomeBtn:"💰 Income",transferBtn:"🔄 Transfer",
+    adjustHint:"Use to fix discrepancies or reconcile with bank statement.",
+    save:"Save",removeAdj:"\u21ba Remove manual adjustment",
+    newTx:"New Transaction",expenseBtn:"\ud83d\udcb8 Expense",incomeBtn:"\ud83d\udcb0 Income",transferBtn:"\ud83d\udd04 Transfer",
     description:"Description",descPh:"Ex: Electric bill",amount:"Amount",account:"Account",
     fromAccount:"From account",toAccount:"To account",
     category:"Category",statusL:"Status",dueDate:"Due date",
-    recurrent:"🔁 Recurring",installments:"💳 Installments",scheduled:"📅 Schedule for",
+    recurrent:"\ud83d\udd01 Recurring",installments:"\ud83d\udcb3 Installments",scheduled:"\ud83d\udcc5 Schedule for",
     weekly:"Weekly",monthly:"Monthly",yearly:"Yearly",
     installCount:"Number of installments",addTx:"Add Transaction",createParcels:"Create {n} installments",
     addTransfer:"Register Transfer",
     newAcc:"New Account",accName:"Name",accNamePh:"Ex: Chase",accType:"Type",
-    checking:"🏦 Checking Account",savings:"🐷 Savings Account",credit:"💳 Credit Card",
+    checking:"\ud83c\udfe6 Checking Account",savings:"\ud83d\udc37 Savings Account",credit:"\ud83d\udcb3 Credit Card",
     initBal:"Initial balance",icon:"Icon",color:"Color",includeTotal:"Include in total assets",addAcc:"Add Account",
-    details:"Details",value:"Amount",type:"Type",incomeL:"💰 Income",expenseL:"💸 Expense",transferL:"🔄 Transfer",
-    date:"Date",recurrence:"Recurrence",markPaid:"✓ Mark as Paid",delete:"🗑",
-    paying:"⏳ Pending",paidL:"✓ Paid",overdueLbl:"OVRD",
+    details:"Details",value:"Amount",type:"Type",incomeL:"\ud83d\udcb0 Income",expenseL:"\ud83d\udcb8 Expense",transferL:"\ud83d\udd04 Transfer",
+    date:"Date",recurrence:"Recurrence",markPaid:"\u2713 Mark as Paid",delete:"\ud83d\uddd1 Delete",edit:"\u270f\ufe0f Edit",
+    paying:"\u23f3 Pending",paidL:"\u2713 Paid",overdueLbl:"OVRD",
     daysAgo:"Overdue {n}d",today:"Due TODAY!",inDays:"Due in {n}d",
-    payBtn:"PAY",manual:"✏️ Manual",adjustMonthBtn:"✏️ Adjust this month's balance",
-    backupModal:"☁️ Backup",driveConnected:"Drive connected.",driveDisconn:"Connect Drive.",connectDrive:"🔗 Connect Google Drive",
-    exportBackup:"📥 Export Backup",backupNote:"File saved with timestamp.",
-    txAdded:"Transaction added ✓",parcelsAdded:"{n} installments added ✓",transferAdded:"Transfer registered ✓",
-    accAdded:"Account added ✓",paidOk:"Paid ✓",removed:"Removed",adjSaved:"Balance adjusted ✓",adjRemoved:"Adjustment removed",
-    backupOk:"Backup exported! ☁️",driveOk:"Google Drive connected ✓",driveConn:"Connecting to Google Drive...",
-    userTitle:"User Profile",langSect:"🌐 LANGUAGE",currSect:"💱 CURRENCY",
-    secSect:"🔒 SECURITY",pinEnable:"Access PIN",pinSet:"Set PIN",pinChange:"Change PIN",
-    biometric:"Use biometrics",biometricNote:"Available if device supports WebAuthn",
-    tipsSect:"💡 FINANCIAL TIPS",tipsEnable:"Tips on app open",tipsNote:"Shows a financial tip on startup",
-    donateSect:"💖 SUPPORT THE APP",donateTitle:"Support This App",
-    donateSub:"☕ Buy Me a Coffee",donateDesc:"If this app made your life easier, consider supporting its development.",
-    whyTitle:"❤️ Why Support?",why1:"Keep the app free",why2:"New features",why3:"Support an independent developer",why4:"No ads",
-    thankTitle:"🙏 Thank You",thankDesc:"Your support is motivation. My e-mail: clvy@hotmail.com",
-    coffee:"☕ One-time",coffeePrice:"$20 USD",coffeeDesc:"A generous one-time contribution",
-    annual:"⭐ Annual Supporter",annualPrice:"$10 USD/year",annualDesc:"Help sustain the app long-term",
-    monthly2:"🔁 Monthly Supporter",monthlyPrice:"$1 USD/month",monthlyDesc:"The easiest way to continuously support",
-    mostPopular:"⭐ MOST POPULAR",supportBtn:"Support now",
-    thankYouMsg:"Thank you! ❤️",supporterBadge:"Supporter 💖",
-    pinTitle:"Access PIN",pinEnterNew:"Enter new PIN (4 digits)",pinConfirm:"Confirm PIN",pinSaved:"PIN set ✓",pinMismatch:"PINs don't match",pinWrong:"Wrong PIN",
-    pinUnlock:"Enter your PIN",unlock:"Unlock",tipOf:"💡 Tip of the day",
-    catSect:"🏷️ CATEGORIES",catNew:"+ New category",catName:"Category name",catIcon:"Icon (emoji)",catColor:"Color",catType:"Type",catBoth:"Both",catIncome:"Income",catExpense:"Expense",
-    catAdd:"Add Category",catAdded:"Category created ✓",catDeleted:"Category deleted",catRenamed:"Category renamed ✓",
-    catEdit:"Edit",catDelete:"Delete",catDeleteWarn:"Entries with this category will become uncategorized.",
-    catBuiltin:"Built-in (cannot be deleted)",catCustom:"Custom",
-    transferSect:"🔄 TRANSFER",sameAccountErr:"Origin and destination must be different",
-  },
-  es:{
-    appName:"Finance Real",lang:"Español",flag:"🇪🇸",
-    home:"INICIO",extract:"EXTRACTO",alerts:"ALERTAS",settings:"CONFIG",user:"USUARIO",
-    totalAssets:"Patrimonio total",result:"RESULTADO",income:"INGRESOS",expenses:"GASTOS",
-    toPay:"POR PAGAR",accounts:"Cuentas y Tarjetas",newAccount:"+ Nueva",history:"Historial Mensual",
-    hide:"▲ Ocultar",show:"▼ Mostrar",recurringPending:"🔁 Recurrentes Pendientes",
-    transactions:"Movimientos",all:"TODOS",pending:"POR PAGAR",paid:"PAGADOS",all2:"Todas",
-    noTx:"Sin movimientos",alertsTitle:"Alertas",allGood:"¡Todo al día!",noPending:"Sin cuentas pendientes.",
-    overdue:"🚨 VENCIDAS",dueSoon:"⚠️ PRÓXIMAS A VENCER",upcoming:"📅 PRÓXIMOS VENCIMIENTOS",
-    settings2:"Configuración",backup:"☁️ RESPALDO GOOGLE DRIVE",status:"Estado Drive",connected:"● Conectado",
-    disconnected:"● Desconectado",connect:"Conectar",frequency:"Frecuencia de Respaldo",lastBackup:"Último respaldo",
-    exportNow:"☁️ Exportar Respaldo Ahora",restore:"🔄 RESTAURAR RESPALDO",restoreBtn:"📂 Seleccionar archivo",
-    restoreWarn:"⚠️ Advertencia: restaurar SOBREESCRIBIRÁ todos los datos actuales. ¿Continuar?",
-    restoreConfirm:"Sí, restaurar",restoreCancel:"Cancelar",restoreOk:"Datos restaurados ✓",
-    accountsSect:"🏦 CUENTAS Y TARJETAS",histSect:"📊 AJUSTE SALDO MENSUAL",
-    installSect:"📱 INSTALAR APP",installBtn:"📲 Instalar en Android",installDesc:"Instala Finance Real en tu Android.",
-    adjustMonth:"Ajustar Saldo Mensual",calculated:"Calculado",corrected:"Saldo corregido",
-    adjustHint:"Para corregir discrepancias o conciliar con extracto bancario.",
-    save:"Guardar Ajuste",removeAdj:"↺ Eliminar y usar cálculo automático",
-    newTx:"Nuevo Movimiento",expenseBtn:"💸 Gasto",incomeBtn:"💰 Ingreso",transferBtn:"🔄 Transferencia",
-    description:"Descripción",descPh:"Ej: Factura de luz",amount:"Monto",account:"Cuenta",
-    fromAccount:"Cuenta de origen",toAccount:"Cuenta de destino",
-    category:"Categoría",statusL:"Estado",dueDate:"Fecha de vencimiento",
-    recurrent:"🔁 Recurrente",installments:"💳 Cuotas",scheduled:"📅 Programar para",
-    weekly:"Semanal",monthly:"Mensual",yearly:"Anual",
-    installCount:"Número de cuotas",addTx:"Agregar Movimiento",createParcels:"Crear {n} cuotas",
-    addTransfer:"Registrar Transferencia",
-    newAcc:"Nueva Cuenta",accName:"Nombre",accNamePh:"Ej: Santander",accType:"Tipo",
-    checking:"🏦 Cuenta Corriente",savings:"🐷 Cuenta de Ahorro",credit:"💳 Tarjeta de Crédito",
-    initBal:"Saldo inicial",icon:"Ícono",color:"Color",includeTotal:"Incluir en patrimonio total",addAcc:"Agregar Cuenta",
-    details:"Detalles",value:"Monto",type:"Tipo",incomeL:"💰 Ingreso",expenseL:"💸 Gasto",transferL:"🔄 Transferencia",
-    date:"Fecha",recurrence:"Recurrencia",markPaid:"✓ Marcar como Pagado",delete:"🗑",
-    paying:"⏳ Pendiente",paidL:"✓ Pagado",overdueLbl:"VENC",
-    daysAgo:"Venció hace {n}d",today:"¡Vence HOY!",inDays:"Vence en {n}d",
-    payBtn:"PAGAR",manual:"✏️ Manual",adjustMonthBtn:"✏️ Ajustar saldo del mes",
-    backupModal:"☁️ Respaldo",driveConnected:"Drive conectado.",driveDisconn:"Conecta Drive.",connectDrive:"🔗 Conectar Google Drive",
-    exportBackup:"📥 Exportar Respaldo",backupNote:"Archivo con timestamp.",
-    txAdded:"Movimiento agregado ✓",parcelsAdded:"{n} cuotas agregadas ✓",transferAdded:"Transferencia registrada ✓",
-    accAdded:"Cuenta agregada ✓",paidOk:"Pagado ✓",removed:"Eliminado",adjSaved:"Saldo ajustado ✓",adjRemoved:"Ajuste eliminado",
-    backupOk:"Respaldo exportado! ☁️",driveOk:"Google Drive conectado ✓",driveConn:"Conectando a Google Drive...",
-    userTitle:"Perfil de Usuario",langSect:"🌐 IDIOMA",currSect:"💱 MONEDA",
-    secSect:"🔒 SEGURIDAD",pinEnable:"PIN de acceso",pinSet:"Establecer PIN",pinChange:"Cambiar PIN",
-    biometric:"Usar biometría",biometricNote:"Disponible si WebAuthn es soportado",
-    tipsSect:"💡 CONSEJOS FINANCIEROS",tipsEnable:"Consejos al abrir",tipsNote:"Muestra un consejo financiero al iniciar",
-    donateSect:"💖 APOYA LA APP",donateTitle:"Apoya This App",donateSub:"☕ Café",donateDesc:"Si esta app facilitó tu vida, considera apoyar.",
-    whyTitle:"❤️ ¿Por qué?",why1:"App gratuita",why2:"Nuevas funciones",why3:"Desarrollador independiente",why4:"Sin anuncios",
-    thankTitle:"🙏 Gracias",thankDesc:"Tu apoyo es motivación. My e-mail: clvy@hotmail.com",
-    coffee:"☕ Una vez",coffeePrice:"USD 20",coffeeDesc:"Contribución generosa",
-    annual:"⭐ Anual",annualPrice:"USD 10/año",annualDesc:"Sustenta a largo plazo",
-    monthly2:"🔁 Mensual",monthlyPrice:"USD 1/mes",monthlyDesc:"La forma más fácil",
-    mostPopular:"⭐ MÁS POPULAR",supportBtn:"Apoyar ahora",
-    thankYouMsg:"¡Gracias! ❤️",supporterBadge:"Colaborador 💖",
-    pinTitle:"PIN de Acceso",pinEnterNew:"Nuevo PIN (4 dígitos)",pinConfirm:"Confirma el PIN",pinSaved:"PIN establecido ✓",pinMismatch:"Los PINs no coinciden",pinWrong:"PIN incorrecto",
-    pinUnlock:"Ingresa tu PIN",unlock:"Desbloquear",tipOf:"💡 Consejo del día",
-    catSect:"🏷️ CATEGORÍAS",catNew:"+ Nueva categoría",catName:"Nombre",catIcon:"Ícono (emoji)",catColor:"Color",catType:"Tipo",catBoth:"Ambos",catIncome:"Ingreso",catExpense:"Gasto",
-    catAdd:"Agregar Categoría",catAdded:"Categoría creada ✓",catDeleted:"Categoría eliminada",catRenamed:"Categoría renombrada ✓",
-    catEdit:"Editar",catDelete:"Eliminar",catDeleteWarn:"Movimientos con esta categoría quedarán sin categoría.",
-    catBuiltin:"Predeterminada",catCustom:"Personalizada",
-    transferSect:"🔄 TRANSFERENCIA",sameAccountErr:"Origen y destino deben ser diferentes",
+    payBtn:"PAY",manual:"\u270f\ufe0f Manual",
+    txAdded:"Transaction added \u2713",parcelsAdded:"{n} installments added \u2713",transferAdded:"Transfer registered \u2713",
+    accAdded:"Account added \u2713",paidOk:"Paid \u2713",removed:"Removed",adjSaved:"Balance adjusted \u2713",adjRemoved:"Adjustment removed",
+    backupOk:"Backup exported! \u2601\ufe0f",
+    userTitle:"User Profile",langSect:"\ud83c\udf10 LANGUAGE",currSect:"\ud83d\udcb1 CURRENCY",
+    catSect:"\ud83c\udff7\ufe0f CATEGORIES",catNew:"+ New category",catName:"Category name",catIcon:"Icon (emoji)",catColor:"Color",catType:"Type",catBoth:"Both",catIncome:"Income",catExpense:"Expense",
+    catAdd:"Add Category",catAdded:"Category created \u2713",catDeleted:"Category deleted",catRenamed:"Category renamed \u2713",
+    catEdit:"Edit",catDelete:"Delete",catBuiltin:"Built-in",catCustom:"Custom",
+    transferSect:"\ud83d\udd04 TRANSFER",sameAccountErr:"Origin and destination must be different",
+    recurringPendingStrip:"Pending recurring",
+    editTx:"Edit Transaction",editTxSaved:"Transaction updated \u2713",
+    deleteTitle:"Delete Transaction",deleteOnlyThis:"Only this one",deleteThisAndFuture:"This and future",deleteAll:"All in series",deleteConfirm:"Confirm delete",
+    partOfSeries:"Part of a series",seriesInfo:"{n} transactions in series",
+    tipOf:"\ud83d\udca1 Tip of the day",
+    recurringIncome:"\ud83d\udd01 Recurring Income",
   },
 };
-// copy missing keys from pt for fr/de/it/zh
-["fr","de","it","zh"].forEach(lang=>{
-  I18N[lang]=I18N[lang]||{};
-  const base=I18N.pt;
-  const extra={
-    fr:{appName:"Finance Real",lang:"Français",flag:"🇫🇷",home:"ACCUEIL",extract:"RELEVÉ",alerts:"ALERTES",settings:"CONFIG",user:"PROFIL",transferBtn:"🔄 Virement",fromAccount:"Compte source",toAccount:"Compte destination",addTransfer:"Enregistrer le virement",transferL:"🔄 Virement",transferAdded:"Virement enregistré ✓",catSect:"🏷️ CATÉGORIES",catNew:"+ Nouvelle catégorie",catName:"Nom",catIcon:"Icône (emoji)",catColor:"Couleur",catType:"Type",catBoth:"Les deux",catIncome:"Revenu",catExpense:"Dépense",catAdd:"Ajouter Catégorie",catAdded:"Catégorie créée ✓",catDeleted:"Catégorie supprimée",catRenamed:"Catégorie renommée ✓",catEdit:"Modifier",catDelete:"Supprimer",catDeleteWarn:"Les entrées avec cette catégorie seront sans catégorie.",catBuiltin:"Intégrée",catCustom:"Personnalisée",transferSect:"🔄 VIREMENT",sameAccountErr:"Source et destination doivent être différentes"},
-    de:{appName:"Finance Real",lang:"Deutsch",flag:"🇩🇪",home:"START",extract:"BUCHUNG",alerts:"ALARME",settings:"EINST.",user:"NUTZER",transferBtn:"🔄 Überweisung",fromAccount:"Quellkonto",toAccount:"Zielkonto",addTransfer:"Überweisung speichern",transferL:"🔄 Überweisung",transferAdded:"Überweisung gespeichert ✓",catSect:"🏷️ KATEGORIEN",catNew:"+ Neue Kategorie",catName:"Name",catIcon:"Symbol (Emoji)",catColor:"Farbe",catType:"Typ",catBoth:"Beide",catIncome:"Einnahme",catExpense:"Ausgabe",catAdd:"Kategorie hinzufügen",catAdded:"Kategorie erstellt ✓",catDeleted:"Kategorie gelöscht",catRenamed:"Kategorie umbenannt ✓",catEdit:"Bearbeiten",catDelete:"Löschen",catDeleteWarn:"Buchungen mit dieser Kategorie werden unkategorisiert.",catBuiltin:"Standard",catCustom:"Benutzerdefiniert",transferSect:"🔄 ÜBERWEISUNG",sameAccountErr:"Quelle und Ziel müssen unterschiedlich sein"},
-    it:{appName:"Finance Real",lang:"Italiano",flag:"🇮🇹",home:"INIZIO",extract:"ESTRATTO",alerts:"AVVISI",settings:"CONFIG",user:"UTENTE",transferBtn:"🔄 Bonifico",fromAccount:"Conto di origine",toAccount:"Conto di destinazione",addTransfer:"Registra Bonifico",transferL:"🔄 Bonifico",transferAdded:"Bonifico registrato ✓",catSect:"🏷️ CATEGORIE",catNew:"+ Nuova categoria",catName:"Nome",catIcon:"Icona (emoji)",catColor:"Colore",catType:"Tipo",catBoth:"Entrambi",catIncome:"Entrata",catExpense:"Spesa",catAdd:"Aggiungi Categoria",catAdded:"Categoria creata ✓",catDeleted:"Categoria eliminata",catRenamed:"Categoria rinominata ✓",catEdit:"Modifica",catDelete:"Elimina",catDeleteWarn:"I movimenti con questa categoria saranno senza categoria.",catBuiltin:"Predefinita",catCustom:"Personalizzata",transferSect:"🔄 BONIFICO",sameAccountErr:"Origine e destinazione devono essere diverse"},
-    zh:{appName:"Finance Real",lang:"中文",flag:"🇨🇳",home:"主页",extract:"账单",alerts:"提醒",settings:"设置",user:"用户",transferBtn:"🔄 转账",fromAccount:"来源账户",toAccount:"目标账户",addTransfer:"登记转账",transferL:"🔄 转账",transferAdded:"转账已登记 ✓",catSect:"🏷️ 类别",catNew:"+ 新建类别",catName:"名称",catIcon:"图标（表情）",catColor:"颜色",catType:"类型",catBoth:"两者",catIncome:"收入",catExpense:"支出",catAdd:"添加类别",catAdded:"类别已创建 ✓",catDeleted:"类别已删除",catRenamed:"类别已重命名 ✓",catEdit:"编辑",catDelete:"删除",catDeleteWarn:"使用此类别的记录将变为无类别。",catBuiltin:"内置",catCustom:"自定义",transferSect:"🔄 转账",sameAccountErr:"来源和目标必须不同"},
-  };
-  I18N[lang]={...base,...extra[lang]};
-});
+["es","fr","de","it","zh"].forEach(l=>{I18N[l]=I18N[l]||{...I18N.en,lang:l,flag:"\ud83c\udf10"};});
 
 const EXTRA_T={
-  pt:{wallet:"Carteira",adjustmentCat:"Ajuste de saldo",adjustAccount:"Gerenciar conta",currentAccountBalance:"Saldo calculado atual",realAccountBalance:"Saldo real informado",difference:"Diferença",adjustmentNote:"Descrição do ajuste",adjustmentNotePh:"Ex: conciliação com saldo do banco",generateAdjustment:"Gerar lançamento de ajuste",correctBaseBalance:"Corrigir saldo base desta conta",adjustAccountHint:"Recomendado: gerar um lançamento para manter o histórico.",noDifference:"Nenhuma diferença para ajustar",adjustmentCreated:"Ajuste de saldo registrado ✓",baseCorrected:"Saldo base da conta corrigido ✓",adjustBalanceBtn:"✏️ Ajustar saldo",openingBalance:"Saldo base",realBalanceDetected:"Saldo real",adjustmentAutoDesc:"Ajuste de saldo",walletDesc:"Dinheiro em carteira",recalibrate:"Recalibrar saldo base",manageAccountBtn:"⚙️ Gerenciar",deleteAccount:"Excluir conta",deleteAccountHint:"Ao excluir a conta, você decide o que fazer com os lançamentos futuros pendentes.",futurePendingAction:"Lançamentos futuros pendentes",transferFutureTo:"Transferir para outra conta",deleteFutureTx:"Excluir lançamentos futuros",transferTarget:"Conta de destino",currentBalanceOnRemoval:"Saldo atual da conta na exclusão",transferBalanceTo:"Transferir saldo para outra conta",dropBalanceOnRemoval:"Remover conta sem transferir saldo",deleteAccountConfirm:"Excluir conta agora",cannotDeleteLastAccount:"Você precisa manter ao menos uma conta ativa",deleteNeedsTarget:"Selecione a conta de destino",accountDeleted:"Conta excluída e saldos ajustados ✓",closingTransferDesc:"Transferência de encerramento",removedAccountLabel:"Conta removida",manageAccountHint:"Os ajustes e exclusão desta conta só podem ser feitos por esta tela de Configurações.",preservedHistory:"Histórico preservado"},
-  en:{wallet:"Wallet",adjustmentCat:"Balance adjustment",adjustAccount:"Manage account",currentAccountBalance:"Current calculated balance",realAccountBalance:"Real balance entered",difference:"Difference",adjustmentNote:"Adjustment note",adjustmentNotePh:"Example: reconcile with bank balance",generateAdjustment:"Create adjustment entry",correctBaseBalance:"Correct this account base balance",adjustAccountHint:"Recommended: create an adjustment entry to keep history.",noDifference:"No difference to adjust",adjustmentCreated:"Balance adjustment saved ✓",baseCorrected:"Base balance corrected ✓",adjustBalanceBtn:"✏️ Adjust balance",openingBalance:"Opening balance",realBalanceDetected:"Real balance",adjustmentAutoDesc:"Balance adjustment",walletDesc:"Cash wallet",recalibrate:"Recalibrate base balance",manageAccountBtn:"⚙️ Manage",deleteAccount:"Delete account",deleteAccountHint:"When deleting an account, decide what to do with future pending entries.",futurePendingAction:"Future pending entries",transferFutureTo:"Transfer to another account",deleteFutureTx:"Delete future entries",transferTarget:"Target account",currentBalanceOnRemoval:"Current balance on deletion",transferBalanceTo:"Transfer balance to another account",dropBalanceOnRemoval:"Remove account without transferring balance",deleteAccountConfirm:"Delete account now",cannotDeleteLastAccount:"You must keep at least one active account",deleteNeedsTarget:"Select the target account",accountDeleted:"Account deleted and balances adjusted ✓",closingTransferDesc:"Closing transfer",removedAccountLabel:"Removed account",manageAccountHint:"Balance adjustments and deletion can only be done from this Settings screen.",preservedHistory:"History preserved"},
+  pt:{wallet:"Carteira",adjustmentCat:"Ajuste de saldo",adjustAccount:"Gerenciar conta",currentAccountBalance:"Saldo calculado atual",realAccountBalance:"Saldo real informado",difference:"Diferen\u00e7a",adjustmentNote:"Descri\u00e7\u00e3o do ajuste",adjustmentNotePh:"Ex: concilia\u00e7\u00e3o",generateAdjustment:"Gerar lan\u00e7amento de ajuste",correctBaseBalance:"Corrigir saldo base",adjustAccountHint:"Recomendado: gerar um lan\u00e7amento para manter o hist\u00f3rico.",noDifference:"Nenhuma diferen\u00e7a para ajustar",adjustmentCreated:"Ajuste registrado \u2713",baseCorrected:"Saldo base corrigido \u2713",adjustBalanceBtn:"\u270f\ufe0f Ajustar saldo",openingBalance:"Saldo base",manageAccountBtn:"\u2699\ufe0f Gerenciar",deleteAccount:"Excluir conta",deleteAccountHint:"Decida o que fazer com os lan\u00e7amentos futuros pendentes.",futurePendingAction:"Lan\u00e7amentos futuros pendentes",transferFutureTo:"Transferir para outra conta",deleteFutureTx:"Excluir lan\u00e7amentos futuros",transferTarget:"Conta de destino",currentBalanceOnRemoval:"Saldo atual na exclus\u00e3o",transferBalanceTo:"Transferir saldo para outra conta",dropBalanceOnRemoval:"Remover sem transferir saldo",deleteAccountConfirm:"Excluir conta agora",cannotDeleteLastAccount:"Mantenha ao menos uma conta ativa",deleteNeedsTarget:"Selecione a conta de destino",accountDeleted:"Conta exclu\u00edda \u2713",closingTransferDesc:"Transfer\u00eancia de encerramento",removedAccountLabel:"Conta removida",preservedHistory:"Hist\u00f3rico preservado"},
+  en:{wallet:"Wallet",adjustmentCat:"Balance adjustment",adjustAccount:"Manage account",currentAccountBalance:"Current calculated balance",realAccountBalance:"Real balance entered",difference:"Difference",adjustmentNote:"Adjustment note",adjustmentNotePh:"Example: reconcile with bank",generateAdjustment:"Create adjustment entry",correctBaseBalance:"Correct base balance",adjustAccountHint:"Recommended: create an entry to keep history.",noDifference:"No difference to adjust",adjustmentCreated:"Adjustment saved \u2713",baseCorrected:"Base balance corrected \u2713",adjustBalanceBtn:"\u270f\ufe0f Adjust balance",openingBalance:"Opening balance",manageAccountBtn:"\u2699\ufe0f Manage",deleteAccount:"Delete account",deleteAccountHint:"Decide what to do with future pending entries.",futurePendingAction:"Future pending entries",transferFutureTo:"Transfer to another account",deleteFutureTx:"Delete future entries",transferTarget:"Target account",currentBalanceOnRemoval:"Current balance on deletion",transferBalanceTo:"Transfer balance to another account",dropBalanceOnRemoval:"Remove without transferring balance",deleteAccountConfirm:"Delete account now",cannotDeleteLastAccount:"Keep at least one active account",deleteNeedsTarget:"Select the target account",accountDeleted:"Account deleted \u2713",closingTransferDesc:"Closing transfer",removedAccountLabel:"Removed account",preservedHistory:"History preserved"},
 };
 ["es","fr","de","it","zh"].forEach(l=>{EXTRA_T[l]=EXTRA_T[l]||EXTRA_T.en;});
 
 const CURRENCIES=[
-  {id:"BRL",symbol:"R$",label:"Real Brasileiro (BRL)",flag:"🇧🇷"},
-  {id:"USD",symbol:"$",label:"US Dollar (USD)",flag:"🇺🇸"},
-  {id:"EUR",symbol:"€",label:"Euro (EUR)",flag:"🇪🇺"},
-  {id:"GBP",symbol:"£",label:"Pound Sterling (GBP)",flag:"🇬🇧"},
-  {id:"JPY",symbol:"¥",label:"Yen Japonês (JPY)",flag:"🇯🇵"},
-  {id:"CNY",symbol:"¥",label:"Yuan Chinês (CNY)",flag:"🇨🇳"},
-  {id:"CHF",symbol:"CHF",label:"Franco Suíço (CHF)",flag:"🇨🇭"},
-  {id:"ARS",symbol:"$",label:"Peso Argentino (ARS)",flag:"🇦🇷"},
-  {id:"MXN",symbol:"$",label:"Peso Mexicano (MXN)",flag:"🇲🇽"},
-  {id:"CLP",symbol:"$",label:"Peso Chileno (CLP)",flag:"🇨🇱"},
-  {id:"COP",symbol:"$",label:"Peso Colombiano (COP)",flag:"🇨🇴"},
-  {id:"CAD",symbol:"CA$",label:"Dólar Canadense (CAD)",flag:"🇨🇦"},
-  {id:"AUD",symbol:"A$",label:"Dólar Australiano (AUD)",flag:"🇦🇺"},
+  {id:"BRL",symbol:"R$",label:"Real Brasileiro (BRL)",flag:"\ud83c\udde7\ud83c\uddf7"},
+  {id:"USD",symbol:"$",label:"US Dollar (USD)",flag:"\ud83c\uddfa\ud83c\uddf8"},
+  {id:"EUR",symbol:"\u20ac",label:"Euro (EUR)",flag:"\ud83c\uddea\ud83c\uddfa"},
+  {id:"GBP",symbol:"\u00a3",label:"Pound Sterling (GBP)",flag:"\ud83c\uddec\ud83c\udde7"},
+  {id:"ARS",symbol:"$",label:"Peso Argentino (ARS)",flag:"\ud83c\udde6\ud83c\uddf7"},
+  {id:"MXN",symbol:"$",label:"Peso Mexicano (MXN)",flag:"\ud83c\uddf2\ud83c\uddfd"},
+  {id:"CAD",symbol:"CA$",label:"D\u00f3lar Canadense (CAD)",flag:"\ud83c\udde8\ud83c\udde6"},
 ];
 
 const TIPS={
-  pt:["Regra 50/30/20: 50% necessidades, 30% desejos, 20% poupança.","Pague-se primeiro: separe 10% do salário antes de gastar.","Fundo de emergência: ideal ter 3 a 6 meses de despesas guardadas.","Evite o crédito rotativo — os juros são dos mais altos do mercado.","Pequenos gastos diários somam muito. Monitore o 'cafezinho'.","Invista antes de gastar o restante, não o contrário.","Renegocie contratos anuais: seguros, internet, planos.","Automatize investimentos para não depender da disciplina.","Compare preços antes de comprar — 5 minutos podem economizar muito.","Dívida boa vs ruim: dívida para gerar renda é diferente de dívida para consumo."],
-  en:["50/30/20 rule: 50% needs, 30% wants, 20% savings.","Pay yourself first: set aside 10% of income before spending.","Emergency fund: aim for 3-6 months of expenses saved.","Avoid revolving credit — interest rates are among the highest.","Small daily expenses add up fast. Track your coffee habit.","Invest before spending the rest, not the other way around.","Renegotiate annual contracts: insurance, internet, subscriptions.","Automate investments so you don't rely on willpower.","Compare prices before buying — 5 minutes can save a lot.","Good debt vs bad debt: debt that generates income differs from consumer debt."],
+  pt:["Regra 50/30/20: 50% necessidades, 30% desejos, 20% poupan\u00e7a.","Pague-se primeiro: separe 10% do sal\u00e1rio antes de gastar.","Fundo de emerg\u00eancia: ideal ter 3 a 6 meses de despesas guardadas.","Evite o cr\u00e9dito rotativo \u2014 os juros s\u00e3o dos mais altos do mercado.","Pequenos gastos di\u00e1rios somam muito. Monitore o 'cafezinho'.","Invista antes de gastar o restante, n\u00e3o o contr\u00e1rio."],
+  en:["50/30/20 rule: 50% needs, 30% wants, 20% savings.","Pay yourself first: set aside 10% before spending.","Emergency fund: aim for 3-6 months of expenses.","Avoid revolving credit \u2014 interest rates are sky high.","Small daily expenses add up. Track that coffee habit.","Invest before spending the rest."],
 };
-["es","fr","de","it","zh"].forEach(l=>{TIPS[l]=TIPS[l]||TIPS.en;});
+["es","fr","de","it","zh"].forEach(l=>{TIPS[l]=TIPS.en;});
 
-/* ── DEFAULT CATEGORIES ──────────────────────────────── */
 const DEFAULT_CATS=[
-  {id:"food",    icon:"🍔",color:"#FF6B6B",label:{pt:"Alimentação",en:"Food",es:"Alimentación",fr:"Alimentation",de:"Lebensmittel",it:"Alimentazione",zh:"餐饮"},txType:"both",builtin:true},
-  {id:"transport",icon:"🚗",color:"#4ECDC4",label:{pt:"Transporte",en:"Transport",es:"Transporte",fr:"Transport",de:"Transport",it:"Trasporto",zh:"交通"},txType:"both",builtin:true},
-  {id:"health",  icon:"💊",color:"#45B7D1",label:{pt:"Saúde",en:"Health",es:"Salud",fr:"Santé",de:"Gesundheit",it:"Salute",zh:"健康"},txType:"both",builtin:true},
-  {id:"leisure", icon:"🎮",color:"#96CEB4",label:{pt:"Lazer",en:"Leisure",es:"Ocio",fr:"Loisirs",de:"Freizeit",it:"Svago",zh:"休闲"},txType:"both",builtin:true},
-  {id:"bills",   icon:"📄",color:"#FFEAA7",label:{pt:"Contas",en:"Bills",es:"Facturas",fr:"Factures",de:"Rechnungen",it:"Bollette",zh:"账单"},txType:"expense",builtin:true},
-  {id:"shopping",icon:"🛍️",color:"#DDA0DD",label:{pt:"Compras",en:"Shopping",es:"Compras",fr:"Achats",de:"Einkaufen",it:"Acquisti",zh:"购物"},txType:"both",builtin:true},
-  {id:"salary",  icon:"💰",color:"#98FB98",label:{pt:"Salário",en:"Salary",es:"Salario",fr:"Salaire",de:"Gehalt",it:"Stipendio",zh:"薪资"},txType:"income",builtin:true},
-  {id:"transfer",icon:"🔄",color:"#87CEEB",label:{pt:"Transferência",en:"Transfer",es:"Transferencia",fr:"Virement",de:"Überweisung",it:"Bonifico",zh:"转账"},txType:"both",builtin:true},
-  {id:"adjustment",icon:"🧮",color:"#A78BFA",label:{pt:"Ajuste de saldo",en:"Balance adjustment",es:"Ajuste de saldo",fr:"Ajustement de solde",de:"Saldoanpassung",it:"Rettifica saldo",zh:"余额调整"},txType:"both",builtin:true},
-  {id:"other",   icon:"📦",color:"#F0A500",label:{pt:"Outros",en:"Other",es:"Otros",fr:"Autres",de:"Sonstiges",it:"Altro",zh:"其他"},txType:"both",builtin:true},
+  {id:"food",icon:"\ud83c\udf54",color:"#FF6B6B",label:{pt:"Alimenta\u00e7\u00e3o",en:"Food"},txType:"both",builtin:true},
+  {id:"transport",icon:"\ud83d\ude97",color:"#4ECDC4",label:{pt:"Transporte",en:"Transport"},txType:"both",builtin:true},
+  {id:"health",icon:"\ud83d\udc8a",color:"#45B7D1",label:{pt:"Sa\u00fade",en:"Health"},txType:"both",builtin:true},
+  {id:"leisure",icon:"\ud83c\udfae",color:"#96CEB4",label:{pt:"Lazer",en:"Leisure"},txType:"both",builtin:true},
+  {id:"bills",icon:"\ud83d\udcc4",color:"#FFEAA7",label:{pt:"Contas",en:"Bills"},txType:"expense",builtin:true},
+  {id:"shopping",icon:"\ud83d\udecd\ufe0f",color:"#DDA0DD",label:{pt:"Compras",en:"Shopping"},txType:"both",builtin:true},
+  {id:"salary",icon:"\ud83d\udcb0",color:"#98FB98",label:{pt:"Sal\u00e1rio",en:"Salary"},txType:"income",builtin:true},
+  {id:"transfer",icon:"\ud83d\udd04",color:"#87CEEB",label:{pt:"Transfer\u00eancia",en:"Transfer"},txType:"both",builtin:true},
+  {id:"adjustment",icon:"\ud83e\uddee",color:"#A78BFA",label:{pt:"Ajuste de saldo",en:"Balance adjustment"},txType:"both",builtin:true},
+  {id:"other",icon:"\ud83d\udce6",color:"#F0A500",label:{pt:"Outros",en:"Other"},txType:"both",builtin:true},
 ];
-
-const getCatLabel=(cat,lang)=>{
-  if(!cat) return "";
-  if(typeof cat.label==="object") return cat.label[lang]||cat.label.en||cat.id;
-  return cat.label||cat.id;
-};
-const getCatById=(cats,id)=>cats.find(c=>c.id===id)||{id,icon:"📦",color:"#F0A500",label:{pt:id,en:id}};
+const getCatLabel=(cat,lang)=>{if(!cat)return"";if(typeof cat.label==="object")return cat.label[lang]||cat.label.en||cat.id;return cat.label||cat.id;};
+const getCatById=(cats,id)=>cats.find(c=>c.id===id)||{id,icon:"\ud83d\udce6",color:"#F0A500",label:{pt:id,en:id}};
 
 const MONTHS_BASE=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 const TODAY="2026-04-08";
-const ddiff= d=>Math.ceil((new Date(d)-new Date(TODAY))/86400000);
-const uid  = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const ACC_ICONS=["🏦","💳","💎","🐷","💵","🏧","💼","🌟"];
+const ddiff=d=>Math.ceil((new Date(d)-new Date(TODAY))/86400000);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const ACC_ICONS=["\ud83c\udfe6","\ud83d\udcb3","\ud83d\udc8e","\ud83d\udc37","\ud83d\udcb5","\ud83c\udfe7","\ud83d\udcbc","\ud83c\udf1f"];
 const ACC_COLORS=["#820AD1","#FF6B00","#10B981","#F59E0B","#3B82F6","#EF4444","#8B5CF6","#06B6D4"];
 const CAT_PRESET_COLORS=["#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFEAA7","#DDA0DD","#98FB98","#87CEEB","#A78BFA","#F0A500","#F87171","#34D399","#60A5FA","#FBBF24","#E879F9","#2DD4BF"];
-const CAT_PRESET_ICONS=["🍔","🚗","💊","🎮","📄","🛍️","💰","🔄","🧮","📦","🏠","✈️","🎓","💄","🐾","🎵","⚽","🍕","☕","🎁","💻","📱","🌿","🏋️"];
-const BKP_IDS=["manual","daily","weekly","monthly"];
-const BKP_LABELS={pt:["Apenas manual","Diário","Semanal","Mensal"],en:["Manual only","Daily","Weekly","Monthly"],es:["Solo manual","Diario","Semanal","Mensual"],fr:["Manuel seulement","Quotidien","Hebdomadaire","Mensuel"],de:["Nur manuell","Täglich","Wöchentlich","Monatlich"],it:["Solo manuale","Giornaliero","Settimanale","Mensile"],zh:["仅手动","每日","每周","每月"]};
+const CAT_PRESET_ICONS=["\ud83c\udf54","\ud83d\ude97","\ud83d\udc8a","\ud83c\udfae","\ud83d\udcc4","\ud83d\udecd\ufe0f","\ud83d\udcb0","\ud83d\udd04","\ud83e\uddee","\ud83d\udce6","\ud83c\udfe0","\u2708\ufe0f","\ud83c\udf93","\ud83d\udc84","\ud83d\udc3e","\ud83c\udfb5","\u26bd","\ud83c\udf55","\u2615","\ud83c\udf81","\ud83d\udcbb","\ud83d\udcf1","\ud83c\udf3f","\ud83c\udfcb\ufe0f"];
+const TODAY_YEAR=new Date(TODAY+"T12:00:00").getFullYear();
+const round2=n=>Math.round((Number(n)||0)*100)/100;
+const normalizeAccount=acc=>({...acc,type:acc?.type||"checking",includeInTotal:acc?.includeInTotal!==false,icon:acc?.icon||"\ud83c\udfe6",color:acc?.color||"#6366F1",openingBalance:typeof acc?.openingBalance==="number"?acc.openingBalance:(parseFloat(acc?.balance)||0)});
 
 const INIT_ACCS=[
-  {id:"acc1",name:"Nubank",   type:"checking",color:"#820AD1",icon:"💳",openingBalance:3200,   includeInTotal:true},
-  {id:"acc2",name:"Itaú CC",  type:"checking",color:"#FF6B00",icon:"🏦",openingBalance:1850.5, includeInTotal:true},
-  {id:"acc3",name:"Poupança", type:"savings", color:"#10B981",icon:"🐷",openingBalance:8400,   includeInTotal:true},
-  {id:"acc4",name:"Visa Ouro",type:"credit",  color:"#F59E0B",icon:"💎",openingBalance:-1200,  includeInTotal:true},
-  {id:"acc5",name:"Carteira", type:"wallet",  color:"#3B82F6",icon:"💵",openingBalance:200,    includeInTotal:true},
+  {id:"acc1",name:"Nubank",type:"checking",color:"#820AD1",icon:"\ud83d\udcb3",openingBalance:3200,includeInTotal:true},
+  {id:"acc2",name:"Ita\u00fa",type:"checking",color:"#FF6B00",icon:"\ud83c\udfe6",openingBalance:1850.5,includeInTotal:true},
+  {id:"acc3",name:"Poupan\u00e7a",type:"savings",color:"#10B981",icon:"\ud83d\udc37",openingBalance:8400,includeInTotal:true},
+  {id:"acc4",name:"Visa Ouro",type:"credit",color:"#F59E0B",icon:"\ud83d\udc8e",openingBalance:-1200,includeInTotal:true},
+  {id:"acc5",name:"Carteira",type:"wallet",color:"#3B82F6",icon:"\ud83d\udcb5",openingBalance:200,includeInTotal:true},
 ];
 const INIT_TX=[
-  {id:"t1",desc:"Salário Abril",  amount:4500, type:"income", cat:"salary",date:"2026-04-05",status:"paid",   accountId:"acc1",recurrent:false,dueDate:"2026-04-05"},
-  {id:"t2",desc:"Supermercado",   amount:320,  type:"expense",cat:"food",  date:"2026-04-01",status:"paid",   accountId:"acc1",recurrent:false,dueDate:"2026-04-01"},
-  {id:"t3",desc:"Netflix",        amount:55.9, type:"expense",cat:"leisure",date:"2026-04-08",status:"pending",accountId:"acc4",recurrent:true,recurrence:"monthly",dueDate:"2026-04-10"},
-  {id:"t4",desc:"Conta de Luz",   amount:180,  type:"expense",cat:"bills", date:"2026-04-08",status:"pending",accountId:"acc1",recurrent:false,dueDate:"2026-04-12"},
-  {id:"t5",desc:"Academia",       amount:99.9, type:"expense",cat:"health",date:"2026-04-08",status:"pending",accountId:"acc4",recurrent:true,recurrence:"monthly",dueDate:"2026-04-15"},
-  {id:"t6",desc:"Internet Vivo",  amount:119.9,type:"expense",cat:"bills", date:"2026-04-08",status:"pending",accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-04-20"},
-  {id:"t7",desc:"Aluguel",        amount:1200, type:"expense",cat:"bills", date:"2026-04-08",status:"pending",accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-04-05"},
-  {id:"t8",desc:"Farmácia",       amount:89.3, type:"expense",cat:"health",date:"2026-04-07",status:"paid",   accountId:"acc1",recurrent:false,dueDate:"2026-04-07"},
-  {id:"t9",desc:"Spotify",        amount:21.9, type:"expense",cat:"leisure",date:"2026-04-08",status:"pending",accountId:"acc4",recurrent:true,recurrence:"monthly",dueDate:"2026-04-08"},
-  {id:"t10",desc:"Salário Março", amount:4500, type:"income", cat:"salary",date:"2026-03-05",status:"paid",   accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-03-05"},
-  {id:"t11",desc:"Aluguel Março", amount:1200, type:"expense",cat:"bills", date:"2026-03-05",status:"paid",   accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-03-05"},
-  {id:"t12",desc:"Superm. Mar",   amount:290,  type:"expense",cat:"food",  date:"2026-03-10",status:"paid",   accountId:"acc1",recurrent:false,dueDate:"2026-03-10"},
-  {id:"t13",desc:"Salário Fev",   amount:4500, type:"income", cat:"salary",date:"2026-02-05",status:"paid",   accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-02-05"},
-  {id:"t14",desc:"Aluguel Fev",   amount:1200, type:"expense",cat:"bills", date:"2026-02-05",status:"paid",   accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-02-05"},
+  {id:"t1",desc:"Sal\u00e1rio Abril",amount:4500,type:"income",cat:"salary",date:"2026-04-05",status:"paid",accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-04-05",seriesId:"s1"},
+  {id:"t2",desc:"Supermercado",amount:320,type:"expense",cat:"food",date:"2026-04-01",status:"paid",accountId:"acc1",recurrent:false,dueDate:"2026-04-01"},
+  {id:"t3",desc:"Netflix",amount:55.9,type:"expense",cat:"leisure",date:"2026-04-08",status:"pending",accountId:"acc4",recurrent:true,recurrence:"monthly",dueDate:"2026-04-10",seriesId:"s3"},
+  {id:"t4",desc:"Conta de Luz",amount:180,type:"expense",cat:"bills",date:"2026-04-08",status:"pending",accountId:"acc1",recurrent:false,dueDate:"2026-04-12"},
+  {id:"t5",desc:"Academia",amount:99.9,type:"expense",cat:"health",date:"2026-04-08",status:"pending",accountId:"acc4",recurrent:true,recurrence:"monthly",dueDate:"2026-04-15",seriesId:"s5"},
+  {id:"t6",desc:"Internet Vivo",amount:119.9,type:"expense",cat:"bills",date:"2026-04-08",status:"pending",accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-04-20",seriesId:"s6"},
+  {id:"t7",desc:"Aluguel",amount:1200,type:"expense",cat:"bills",date:"2026-04-08",status:"pending",accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-04-05",seriesId:"s7"},
+  {id:"t8",desc:"Farm\u00e1cia",amount:89.3,type:"expense",cat:"health",date:"2026-04-07",status:"paid",accountId:"acc1",recurrent:false,dueDate:"2026-04-07"},
+  {id:"t9",desc:"Spotify",amount:21.9,type:"expense",cat:"leisure",date:"2026-04-08",status:"pending",accountId:"acc4",recurrent:true,recurrence:"monthly",dueDate:"2026-04-08",seriesId:"s9"},
+  {id:"t10",desc:"Sal\u00e1rio Mar\u00e7o",amount:4500,type:"income",cat:"salary",date:"2026-03-05",status:"paid",accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-03-05",seriesId:"s1"},
+  {id:"t11",desc:"Aluguel Mar\u00e7o",amount:1200,type:"expense",cat:"bills",date:"2026-03-05",status:"paid",accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-03-05",seriesId:"s7"},
+  {id:"t12",desc:"Superm. Mar",amount:290,type:"expense",cat:"food",date:"2026-03-10",status:"paid",accountId:"acc1",recurrent:false,dueDate:"2026-03-10"},
+  {id:"t13",desc:"Sal\u00e1rio Fev",amount:4500,type:"income",cat:"salary",date:"2026-02-05",status:"paid",accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-02-05",seriesId:"s1"},
+  {id:"t14",desc:"Aluguel Fev",amount:1200,type:"expense",cat:"bills",date:"2026-02-05",status:"paid",accountId:"acc1",recurrent:true,recurrence:"monthly",dueDate:"2026-02-05",seriesId:"s7"},
 ];
 const INIT_HIST={"2026-02":{adjusted:false,manual:null},"2026-03":{adjusted:false,manual:null},"2026-04":{adjusted:false,manual:null}};
 
-// Build months for a given year
-function buildMonthsForYear(year){
-  const months=[];
-  for(let m=1;m<=12;m++) months.push(`${year}-${String(m).padStart(2,"0")}`);
-  return months;
-}
-// Detect the furthest year that has transactions (for installments spanning years)
-function detectMaxYear(txs){
-  const todayYear=new Date(TODAY+"T12:00:00").getFullYear();
-  let maxYear=todayYear;
-  (txs||[]).forEach(t=>{
-    const y=parseInt((t.date||"").slice(0,4));
-    if(!isNaN(y)&&y>maxYear) maxYear=y;
-    const dy=parseInt((t.dueDate||"").slice(0,4));
-    if(!isNaN(dy)&&dy>maxYear) maxYear=dy;
-  });
-  return maxYear;
-}
-const TODAY_YEAR=new Date(TODAY+"T12:00:00").getFullYear();
+function buildMonthsForYear(year){const ms=[];for(let m=1;m<=12;m++)ms.push(`${year}-${String(m).padStart(2,"0")}`);return ms;}
 
 function useLS(key,init){
-  const [v,setV]=useState(()=>{try{const s=localStorage.getItem("fr4_"+key);return s?JSON.parse(s):init;}catch{return init;}});
-  const set=useCallback(fn=>{
-    setV(prev=>{const next=typeof fn==="function"?fn(prev):fn;try{localStorage.setItem("fr4_"+key,JSON.stringify(next));}catch{}return next;});
-  },[key]);
-  return [v,set];
+  const[v,setV]=useState(()=>{try{const s=localStorage.getItem("fr5_"+key);return s?JSON.parse(s):init;}catch{return init;}});
+  const set=useCallback(fn=>{setV(prev=>{const next=typeof fn==="function"?fn(prev):fn;try{localStorage.setItem("fr5_"+key,JSON.stringify(next));}catch{}return next;});},[key]);
+  return[v,set];
 }
-function ts(){const n=new Date();return `${n.getFullYear()}${String(n.getMonth()+1).padStart(2,"0")}${String(n.getDate()).padStart(2,"0")}_${String(n.getHours()).padStart(2,"0")}${String(n.getMinutes()).padStart(2,"0")}${String(n.getSeconds()).padStart(2,"0")}`;}
-const round2=n=>Math.round((Number(n)||0)*100)/100;
-const normalizeAccount=acc=>({...acc,type:acc?.type||"checking",includeInTotal:acc?.includeInTotal!==false,icon:acc?.icon||"🏦",color:acc?.color||"#6366F1",openingBalance:typeof acc?.openingBalance==="number"?acc.openingBalance:(parseFloat(acc?.balance)||0)});
+const ts=()=>{const n=new Date();return`${n.getFullYear()}${String(n.getMonth()+1).padStart(2,"0")}${String(n.getDate()).padStart(2,"0")}_${String(n.getHours()).padStart(2,"0")}${String(n.getMinutes()).padStart(2,"0")}`;};
 
-/* ── SMALL COMPONENTS ─────────────────────────────────── */
+/* \u2500\u2500 SMALL COMPONENTS \u2500\u2500 */
 function AppIcon({size=26}){return(<svg width={size} height={size} viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="11" fill="#080C18"/><text x="24" y="34" textAnchor="middle" fontFamily="Georgia,serif" fontSize="30" fontWeight="700" fill="#6366F1">$</text><line x1="24" y1="8" x2="24" y2="13" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round"/><line x1="24" y1="35" x2="24" y2="40" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round"/></svg>);}
 function Toggle({val,onChange}){return(<button onClick={()=>onChange(!val)} style={{width:44,height:24,borderRadius:12,border:"none",cursor:"pointer",background:val?"#6366F1":"#1F2D45",position:"relative",transition:"background .25s",flexShrink:0}}><div style={{position:"absolute",top:3,left:val?22:3,width:18,height:18,borderRadius:"50%",background:"#fff",transition:"left .25s",boxShadow:"0 1px 4px #0005"}}/></button>);}
 function Overlay({children,onClose}){return(<div onClick={e=>{if(e.target===e.currentTarget)onClose();}} style={{position:"fixed",inset:0,background:"#000C",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}><div style={{background:"#0D1526",borderRadius:"24px 24px 0 0",padding:"20px 17px 44px",width:"100%",maxWidth:430,border:"1px solid #1A2640",maxHeight:"92dvh",overflowY:"auto",animation:"su .35s cubic-bezier(.22,1,.36,1)"}}>{children}</div></div>);}
-function MH({title,onClose,badge}){return(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{display:"flex",gap:8,alignItems:"center"}}><h3 style={{fontSize:17,fontWeight:800,color:"#E8EDF5"}}>{title}</h3>{badge&&<span style={{fontSize:10,fontWeight:800,background:"#EC489920",color:"#EC4899",border:"1px solid #EC489940",borderRadius:20,padding:"2px 8px"}}>{badge}</span>}</div><button onClick={onClose} style={{background:"#111827",border:"1px solid #1F2D45",color:"#64748B",width:32,height:32,borderRadius:10,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>✕</button></div>);}
+function MH({title,onClose,badge}){return(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{display:"flex",gap:8,alignItems:"center"}}><h3 style={{fontSize:17,fontWeight:800,color:"#E8EDF5"}}>{title}</h3>{badge&&<span style={{fontSize:10,fontWeight:800,background:"#EC489920",color:"#EC4899",border:"1px solid #EC489940",borderRadius:20,padding:"2px 8px"}}>{badge}</span>}</div><button onClick={onClose} style={{background:"#111827",border:"1px solid #1F2D45",color:"#64748B",width:32,height:32,borderRadius:10,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>\u2715</button></div>);}
 function Row({label,val,border=true}){return(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:border?"1px solid #111827":"none"}}><span style={{fontSize:11,color:"#64748B",fontWeight:700}}>{label}</span><span style={{fontSize:13,fontWeight:600}}>{val}</span></div>);}
-function SettingRow({icon,label,note,right}){return(<div style={{display:"flex",gap:10,alignItems:"center",padding:"11px 0",borderBottom:"1px solid #0D1526"}}><span style={{fontSize:20,width:28,textAlign:"center",flexShrink:0}}>{icon}</span><div style={{flex:1}}><p style={{fontSize:13,fontWeight:600,color:"#E8EDF5"}}>{label}</p>{note&&<p style={{fontSize:10,color:"#475569",marginTop:1}}>{note}</p>}</div>{right}</div>);}
 function Section({title,color,items,accs,onPay,T,fmtC,cats,lang}){
-  return(<div style={{marginBottom:16}}><p style={{fontSize:11,fontWeight:800,color,letterSpacing:.8,marginBottom:8}}>{title}</p>{items.map(t=>{const cat=getCatById(cats,t.cat);const acc=(accs.find(a=>a.id===t.accountId)||(t?.accountNameSnapshot?{name:t.accountNameSnapshot,icon:t.accountIconSnapshot||"🗃️",color:t.accountColorSnapshot||"#64748B"}:null));const d=ddiff(t.dueDate);const dayStr=d<0?T.daysAgo.replace("{n}",Math.abs(d)):d===0?T.today:T.inDays.replace("{n}",d);return(<div key={t.id} style={{background:color+"0F",border:`1px solid ${color}30`,borderRadius:16,padding:12,marginBottom:7,display:"flex",gap:10,alignItems:"center"}}><div style={{width:40,height:40,borderRadius:12,background:cat.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{cat.icon}</div><div style={{flex:1,minWidth:0}}><p style={{fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}</p><p style={{fontSize:10,color,fontWeight:600,marginTop:2}}>{dayStr}{acc?` · ${acc.icon} ${acc.name}`:""}</p></div><div style={{textAlign:"right",flexShrink:0}}><p style={{fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:700,color}}>{fmtC(t.amount)}</p><button onClick={()=>onPay(t.id)} style={{background:color+"25",border:`1px solid ${color}50`,color,borderRadius:8,padding:"3px 8px",fontSize:9,cursor:"pointer",fontWeight:800,marginTop:3}}>{T.payBtn}</button></div></div>);})}</div>);
+  return(<div style={{marginBottom:16}}><p style={{fontSize:11,fontWeight:800,color,letterSpacing:.8,marginBottom:8}}>{title}</p>{items.map(t=>{const cat=getCatById(cats,t.cat);const acc=accs.find(a=>a.id===t.accountId);const d=ddiff(t.dueDate);const dayStr=d<0?T.daysAgo.replace("{n}",Math.abs(d)):d===0?T.today:T.inDays.replace("{n}",d);return(<div key={t.id} style={{background:color+"0F",border:`1px solid ${color}30`,borderRadius:16,padding:12,marginBottom:7,display:"flex",gap:10,alignItems:"center"}}><div style={{width:40,height:40,borderRadius:12,background:cat.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{cat.icon}</div><div style={{flex:1,minWidth:0}}><p style={{fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}</p><p style={{fontSize:10,color,fontWeight:600,marginTop:2}}>{dayStr}{acc?` \u00b7 ${acc.icon} ${acc.name}`:""}</p></div><div style={{textAlign:"right",flexShrink:0}}><p style={{fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:700,color}}>{fmtC(t.amount)}</p><button onClick={()=>onPay(t.id)} style={{background:color+"25",border:`1px solid ${color}50`,color,borderRadius:8,padding:"3px 8px",fontSize:9,cursor:"pointer",fontWeight:800,marginTop:3}}>{T.payBtn}</button></div></div>);})}</div>);
 }
-function PinLock({T,onUnlock}){
-  const [pin,setPin]=useState("");const [err,setErr]=useState(false);
-  const stored=localStorage.getItem("fr4_pin")||"";
-  const tap=d=>{const n=pin+d;setPin(n);setErr(false);if(n.length===4){if(n===stored){onUnlock();}else{setErr(true);setTimeout(()=>{setPin("");setErr(false);},700);}}};
-  const del=()=>setPin(p=>p.slice(0,-1));
-  return(<div style={{position:"fixed",inset:0,background:"#080C18",zIndex:500,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:28}}><AppIcon size={52}/><p style={{fontSize:20,fontWeight:800,color:"#E8EDF5"}}>Finance Real</p><p style={{fontSize:13,color:"#64748B"}}>{T.pinUnlock}</p><div style={{display:"flex",gap:14}}>{[0,1,2,3].map(i=>(<div key={i} style={{width:16,height:16,borderRadius:"50%",background:pin.length>i?(err?"#EF4444":"#6366F1"):"#1F2D45",transition:"background .2s"}}/>))}</div><div style={{display:"grid",gridTemplateColumns:"repeat(3,72px)",gap:12}}>{[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((d,i)=>(<button key={i} onClick={()=>d===""?null:d==="⌫"?del():tap(String(d))} style={{width:72,height:72,borderRadius:18,fontSize:22,fontWeight:700,background:d===""?"transparent":"#111827",border:d===""?"none":"1px solid #1F2D45",color:d==="⌫"?"#EF4444":"#E8EDF5",cursor:d===""?"default":"pointer"}}>{d}</button>))}</div></div>);
-}
-function TipOverlay({T,lang,onClose}){
-  const tips=TIPS[lang]||TIPS.pt;
-  const tip=useMemo(()=>tips[Math.floor(Math.random()*tips.length)],[]);
-  return(<div style={{position:"fixed",inset:0,background:"#000C",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{background:"#0D1526",border:"1px solid #6366F140",borderRadius:24,padding:28,maxWidth:380,width:"100%",animation:"su .4s cubic-bezier(.22,1,.36,1)"}}><p style={{fontSize:13,fontWeight:800,color:"#6366F1",letterSpacing:.8,marginBottom:12}}>{T.tipOf}</p><p style={{fontSize:16,fontWeight:600,color:"#E8EDF5",lineHeight:1.6,marginBottom:22}}>{tip}</p><button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#6366F1,#4F46E5)",border:"none",color:"#fff",borderRadius:14,padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer"}}>OK 👍</button></div></div>);
-}
+function TipOverlay({T,lang,onClose}){const tips=TIPS[lang]||TIPS.pt;const tip=useMemo(()=>tips[Math.floor(Math.random()*tips.length)],[]);return(<div style={{position:"fixed",inset:0,background:"#000C",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{background:"#0D1526",border:"1px solid #6366F140",borderRadius:24,padding:28,maxWidth:380,width:"100%",animation:"su .4s cubic-bezier(.22,1,.36,1)"}}><p style={{fontSize:13,fontWeight:800,color:"#6366F1",letterSpacing:.8,marginBottom:12}}>{T.tipOf}</p><p style={{fontSize:16,fontWeight:600,color:"#E8EDF5",lineHeight:1.6,marginBottom:22}}>{tip}</p><button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#6366F1,#4F46E5)",border:"none",color:"#fff",borderRadius:14,padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer"}}>OK \ud83d\udc4d</button></div></div>);}
 
-/* ══════════════════════════════════════════════════════════
-   MAIN APP
-══════════════════════════════════════════════════════════ */
+/* \u2550\u2550 MAIN APP \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
 function App(){
-  const [txs,    setTxs]  = useLS("tx",   INIT_TX);
-  const [accs,   setAccs] = useLS("accs", INIT_ACCS);
-  const [balH,   setBalH] = useLS("bh",   INIT_HIST);
-  const [bkpCfg, setBkp]  = useLS("bkp",  {interval:"manual",lastBackup:null,driveConnected:false});
-  const [userCfg,setUser] = useLS("ucfg", {lang:"pt",currency:"BRL",pinEnabled:false,biometric:false,tipsEnabled:true,supporter:false});
-  const [customCats, setCustomCats] = useLS("cats", []);
+  const[txs,setTxs]=useLS("tx",INIT_TX);
+  const[accs,setAccs]=useLS("accs",INIT_ACCS);
+  const[balH,setBalH]=useLS("bh",INIT_HIST);
+  const[userCfg,setUser]=useLS("ucfg",{lang:"pt",currency:"BRL",tipsEnabled:true});
+  const[customCats,setCustomCats]=useLS("cats",[]);
 
-  const [tab,       setTab]      = useState("home");
-  const [modal,     setModal]    = useState(null);
-  const [toast,     setToast]    = useState(null);
-  const [selMon,    setSelMon]   = useState("2026-04");
-  const [selYear,   setSelYear]  = useState(TODAY_YEAR);
-  const [fAcc,      setFAcc]     = useState("all");
-  const [fStatus,   setFStatus]  = useState("all");
-  const [detTx,     setDetTx]    = useState(null);
-  const [showHist,  setShowHist] = useState(false);
-  const [editBM,    setEditBM]   = useState(null);
-  const [tmpBal,    setTmpBal]   = useState("");
-  const [editAccId, setEditAccId]= useState(null);
-  const [accRealBal,setAccRealBal]=useState("");
-  const [accAdjNote,setAccAdjNote]=useState("");
-  const [accDeleteFutureMode,setAccDeleteFutureMode]=useState("transfer");
-  const [accDeleteTargetId,setAccDeleteTargetId]=useState("");
-  const [accDeleteBalanceMode,setAccDeleteBalanceMode]=useState("transfer");
-  const [accDeleteBalanceTargetId,setAccDeleteBalanceTargetId]=useState("");
-  const [deferPmt,  setDeferPmt] = useState(null);
-  const [locked,    setLocked]   = useState(()=>userCfg.pinEnabled && !!localStorage.getItem("fr4_pin"));
-  const [showPin,   setShowPin]  = useState(false);
-  const [pinStep,   setPinStep]  = useState(1);
-  const [pin1,      setPin1]     = useState("");
-  const [pin2,      setPin2]     = useState("");
-  const [showTip,   setShowTip]  = useState(false);
-  const [restoreConfirm, setRestoreConfirm] = useState(null);
-  const [pixModal,  setPixModal] = useState(null);
+  const[tab,setTab]=useState("home");
+  const[modal,setModal]=useState(null);
+  const[toast,setToast]=useState(null);
+  const[selMon,setSelMon]=useState("2026-04");
+  const[selYear,setSelYear]=useState(TODAY_YEAR);
+  const[fAcc,setFAcc]=useState("all");
+  const[fStatus,setFStatus]=useState("all");
+  const[detTx,setDetTx]=useState(null);
+  const[showHist,setShowHist]=useState(false);
+  const[editBM,setEditBM]=useState(null);
+  const[tmpBal,setTmpBal]=useState("");
+  const[editAccId,setEditAccId]=useState(null);
+  const[accRealBal,setAccRealBal]=useState("");
+  const[accAdjNote,setAccAdjNote]=useState("");
+  const[accDeleteFutureMode,setAccDeleteFutureMode]=useState("transfer");
+  const[accDeleteTargetId,setAccDeleteTargetId]=useState("");
+  const[accDeleteBalanceMode,setAccDeleteBalanceMode]=useState("transfer");
+  const[accDeleteBalanceTargetId,setAccDeleteBalanceTargetId]=useState("");
+  const[deferPmt,setDeferPmt]=useState(null);
+  const[showTip,setShowTip]=useState(false);
+  const[catEditId,setCatEditId]=useState(null);
+  const[catForm,setCatForm]=useState({name:"",icon:"\ud83d\udce6",color:"#F0A500",txType:"both"});
+  const[catEditName,setCatEditName]=useState("");
+  const[trForm,setTrForm]=useState({desc:"",amount:"",fromAccountId:"",toAccountId:"",date:TODAY,status:"paid"});
 
-  // Sync selYear when selMon changes to a different year
-  useEffect(()=>{
-    const y=parseInt(selMon.slice(0,4));
-    if(!isNaN(y)&&y!==selYear) setSelYear(y);
-  },[selMon]);
-  const [catEditId, setCatEditId] = useState(null);
-  const [catForm, setCatForm] = useState({name:"",icon:"📦",color:"#F0A500",txType:"both"});
-  const [catEditName, setCatEditName] = useState("");
+  // Edit modal state
+  const[editTx,setEditTx]=useState(null); // tx being edited
+  const[editForm,setEditForm]=useState(null);
 
-  // Transfer form state
-  const [trForm, setTrForm] = useState({desc:"",amount:"",fromAccountId:"",toAccountId:"",date:TODAY,status:"paid"});
+  // Delete series modal
+  const[delTxTarget,setDelTxTarget]=useState(null);
+  const[delMode,setDelMode]=useState(null); // "only"|"thisAndFuture"|"all"
 
-  const fileRef = useRef(null);
-  const tokenClientRef = useRef(null);
-  const accessTokenRef = useRef(sessionStorage.getItem("fr4_drive_token")||"");
-  const driveReadyRef = useRef(false);
+  const fileRef=useRef(null);
+  const currentYM=TODAY.slice(0,7);
 
-  const T = I18N[userCfg.lang] || I18N.pt;
-  const CURR = CURRENCIES.find(c=>c.id===userCfg.currency)||CURRENCIES[0];
-  const XT = EXTRA_T[userCfg.lang] || EXTRA_T.en;
+  const T=I18N[userCfg.lang]||I18N.pt;
+  const CURR=CURRENCIES.find(c=>c.id===userCfg.currency)||CURRENCIES[0];
+  const XT=EXTRA_T[userCfg.lang]||EXTRA_T.en;
+  const allCats=useMemo(()=>[...DEFAULT_CATS,...(customCats||[])],[customCats]);
 
-  // Merged categories: defaults + custom
-  const allCats = useMemo(()=>[...DEFAULT_CATS,...(customCats||[])],[customCats]);
+  useEffect(()=>{setAccs(prev=>{const next=(prev||[]).map(normalizeAccount);return JSON.stringify(prev)===JSON.stringify(next)?prev:next;});});
+  useEffect(()=>{const y=parseInt(selMon.slice(0,4));if(!isNaN(y)&&y!==selYear)setSelYear(y);},[selMon]);
+  useEffect(()=>{const h=e=>{e.preventDefault();setDeferPmt(e);};window.addEventListener("beforeinstallprompt",h);return()=>window.removeEventListener("beforeinstallprompt",h);},[]);
+  useEffect(()=>{if(userCfg.tipsEnabled)setShowTip(true);},[]);
 
-  useEffect(()=>{setAccs(prev=>{const next=(prev||[]).map(normalizeAccount);return JSON.stringify(prev)===JSON.stringify(next)?prev:next;});},[]);
+  const ALL_MONTHS=useMemo(()=>buildMonthsForYear(selYear),[selYear]);
 
-  const accBalanceById = useMemo(()=>Object.fromEntries((accs||[]).map(a=>{
+  const accBalanceById=useMemo(()=>Object.fromEntries((accs||[]).map(a=>{
     const acc=normalizeAccount(a);
     const delta=(txs||[]).filter(t=>t.accountId===acc.id&&t.status==="paid").reduce((s,t)=>{
-      if(t.type==="income"||t.type==="transfer_in") return s+t.amount;
-      if(t.type==="expense"||t.type==="transfer_out") return s-t.amount;
+      if(t.type==="income"||t.type==="transfer_in")return s+t.amount;
+      if(t.type==="expense"||t.type==="transfer_out")return s-t.amount;
       return s;
     },0);
-    return [acc.id,round2(acc.openingBalance+delta)];
+    return[acc.id,round2(acc.openingBalance+delta)];
   })),[accs,txs]);
-  const getAccBal = useCallback(id=>accBalanceById[id]??0,[accBalanceById]);
-  const typeLabel = useCallback(type=>{if(type==="checking")return T.checking;if(type==="savings")return T.savings;if(type==="credit")return T.credit;return XT.wallet;},[T,XT]);
-  const getTxAccountMeta = useCallback(t=>{const acc=(accs||[]).find(a=>a.id===t.accountId);if(acc)return {name:acc.name,icon:acc.icon,color:acc.color};if(t?.accountNameSnapshot||t?.accountRemoved)return {name:t.accountNameSnapshot||XT.removedAccountLabel,icon:t.accountIconSnapshot||"🗃️",color:t.accountColorSnapshot||"#64748B",removed:true};return null;},[accs,XT]);
-  const driveClientConfigured = GOOGLE_DRIVE_CONFIG.CLIENT_ID && !GOOGLE_DRIVE_CONFIG.CLIENT_ID.startsWith("COLE_AQUI");
+  const getAccBal=useCallback(id=>accBalanceById[id]??0,[accBalanceById]);
+  const typeLabel=useCallback(type=>{if(type==="checking")return T.checking;if(type==="savings")return T.savings;if(type==="credit")return T.credit;return XT.wallet;},[T,XT]);
+  const getTxAccountMeta=useCallback(t=>{const acc=(accs||[]).find(a=>a.id===t.accountId);if(acc)return{name:acc.name,icon:acc.icon,color:acc.color};if(t?.accountNameSnapshot||t?.accountRemoved)return{name:t.accountNameSnapshot||XT.removedAccountLabel,icon:t.accountIconSnapshot||"\ud83d\uddc3\ufe0f",color:t.accountColorSnapshot||"#64748B",removed:true};return null;},[accs,XT]);
 
-  const fmtC = useCallback((n)=>{try{const locale={pt:"pt-BR",en:"en-US",es:"es-ES",fr:"fr-FR",de:"de-DE",it:"it-IT",zh:"zh-CN"}[userCfg.lang]||"pt-BR";return n.toLocaleString(locale,{style:"currency",currency:userCfg.currency});}catch{return CURR.symbol+" "+Math.abs(n).toFixed(2);}},[userCfg.lang,userCfg.currency]);
-  const fmtS = useCallback((n)=>{const a=Math.abs(n),s=n<0?"-":"";return a>=1000?s+CURR.symbol+(a/1000).toFixed(1)+"k":s+CURR.symbol+a.toFixed(0);},[CURR]);
-
-  useEffect(()=>{const h=e=>{e.preventDefault();setDeferPmt(e);};window.addEventListener("beforeinstallprompt",h);return()=>window.removeEventListener("beforeinstallprompt",h);},[]);
-  useEffect(()=>{if(userCfg.tipsEnabled && !locked) setShowTip(true);},[]);
-
-  const mTxs    = txs.filter(t=>t.date.startsWith(selMon));
-  const income  = mTxs.filter(t=>t.type==="income"&&t.status==="paid").reduce((a,t)=>a+t.amount,0);
-  const expenses= mTxs.filter(t=>t.type==="expense"&&t.status==="paid").reduce((a,t)=>a+t.amount,0);
-  const pending = txs.filter(t=>t.status==="pending"&&t.type==="expense");
-  const totPend = pending.reduce((a,t)=>a+t.amount,0);
-  const overdue = pending.filter(t=>ddiff(t.dueDate)<0);
-  const dueSoon = pending.filter(t=>{const d=ddiff(t.dueDate);return d>=0&&d<=3;});
-  const totAssets=accs.filter(a=>a.includeInTotal).reduce((s,a)=>s+getAccBal(a.id),0);
-
-  // ── PROJEÇÃO PATRIMONIAL ──────────────────────────────────
-  // Para meses futuros, calcula: receitas/despesas projetadas do mês,
-  // acumulado do ano até aquele mês, e patrimônio projetado naquele ponto.
-  const getMonProjection = useMemo(()=>{
-    return (ym)=>{
-      if(ym<=currentYM) return null; // só para meses futuros
-      const [yy,mm]=ym.split("-").map(Number);
-
-      // 1. Receitas e despesas projetadas para este mês específico
-      let projIncome=0, projExpense=0;
-      (txs||[]).forEach(t=>{
-        if(t.type==="transfer_in"||t.type==="transfer_out") return;
-        if(t.recurrent){
-          if(t.recurrence==="monthly"){
-            const tYM=t.date.slice(0,7);
-            if(tYM<ym){
-              if(t.type==="income") projIncome+=t.amount;
-              if(t.type==="expense") projExpense+=t.amount;
-            }
-          } else if(t.recurrence==="yearly"){
-            const tDate=new Date(t.date+"T12:00:00");
-            const sameMonth=String(tDate.getMonth()+1).padStart(2,"0")===String(mm).padStart(2,"0");
-            if(sameMonth && tDate.getFullYear()<=yy){
-              if(t.type==="income") projIncome+=t.amount;
-              if(t.type==="expense") projExpense+=t.amount;
-            }
-          }
-        } else {
-          // lançamentos avulsos explicitamente neste mês futuro
-          if(t.date.startsWith(ym)){
-            if(t.type==="income") projIncome+=t.amount;
-            if(t.type==="expense") projExpense+=t.amount;
-          }
-        }
-      });
-
-      // 2. Acumulado real do ano até o mês atual (meses passados + atual)
-      const yearStr=String(yy);
-      let ytdIncome=0, ytdExpense=0;
-      (txs||[]).forEach(t=>{
-        if(!t.date.startsWith(yearStr)) return;
-        if(t.type==="transfer_in"||t.type==="transfer_out") return;
-        const tYM=t.date.slice(0,7);
-        if(tYM<=currentYM){
-          if(t.type==="income"&&t.status==="paid") ytdIncome+=t.amount;
-          if(t.type==="expense"&&t.status==="paid") ytdExpense+=t.amount;
-        }
-      });
-
-      // 3. Projeção acumulada do ano até o mês selecionado
-      //    soma os meses futuros desde currentYM+1 até ym inclusive
-      let cumProjIncome=ytdIncome, cumProjExpense=ytdExpense;
-      const [cy,cm]=currentYM.split("-").map(Number);
-      for(let i=1;;i++){
-        let fm=cm+i, fy=cy;
-        if(fm>12){fm-=12;fy++;}
-        const fym=`${fy}-${String(fm).padStart(2,"0")}`;
-        // project this intermediate month
-        let fi=0,fe=0;
-        (txs||[]).forEach(t=>{
-          if(t.type==="transfer_in"||t.type==="transfer_out") return;
-          if(t.recurrent){
-            if(t.recurrence==="monthly"){
-              const tYM=t.date.slice(0,7);
-              if(tYM<fym){
-                if(t.type==="income") fi+=t.amount;
-                if(t.type==="expense") fe+=t.amount;
-              }
-            } else if(t.recurrence==="yearly"){
-              const tDate=new Date(t.date+"T12:00:00");
-              if(String(tDate.getMonth()+1).padStart(2,"0")===String(fm).padStart(2,"0")&&tDate.getFullYear()<=fy){
-                if(t.type==="income") fi+=t.amount;
-                if(t.type==="expense") fe+=t.amount;
-              }
-            }
-          } else if(t.date.startsWith(fym)){
-            if(t.type==="income") fi+=t.amount;
-            if(t.type==="expense") fe+=t.amount;
-          }
-        });
-        cumProjIncome+=fi;
-        cumProjExpense+=fe;
-        if(fym>=ym) break;
-        if(i>24) break; // safety
-      }
-
-      // 4. Patrimônio projetado = patrimônio atual + saldo acumulado projetado a partir de agora
-      const projNetFromNow=round2(cumProjIncome-ytdIncome-(cumProjExpense-ytdExpense));
-      const projAssets=round2(totAssets+projNetFromNow);
-
-      // 5. Taxa de poupança projetada do mês
-      const savingsRate=projIncome>0?Math.round(((projIncome-projExpense)/projIncome)*100):0;
-
-      return {
-        projIncome:round2(projIncome),
-        projExpense:round2(projExpense),
-        projNet:round2(projIncome-projExpense),
-        ytdIncome:round2(ytdIncome),
-        ytdExpense:round2(ytdExpense),
-        cumProjIncome:round2(cumProjIncome),
-        cumProjExpense:round2(cumProjExpense),
-        projAssets,
-        savingsRate,
-        monthsAhead: Math.round((yy-cy)*12+(mm-cm)),
-      };
-    };
-  },[txs,currentYM,totAssets]);
-
-
-  const getMonBal=ym=>{
-    const h=balH[ym];
-    if(h?.adjusted&&h?.manual!==null) return h.manual;
-    const [yy,mm]=ym.split("-").map(Number);
-    const today=new Date(TODAY+"T12:00:00");
-    const isCurrentOrPast=new Date(ym+"-01")<=new Date(today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-01");
-    if(isCurrentOrPast){
-      // Use actual transactions for past/current months
-      const t=txs.filter(x=>x.date.startsWith(ym));
-      return t.filter(x=>x.type==="income"&&x.status==="paid").reduce((a,x)=>a+x.amount,0)
-            -t.filter(x=>x.type==="expense"&&x.status==="paid").reduce((a,x)=>a+x.amount,0);
-    } else {
-      // Project recurring transactions into future months
-      let projected=0;
-      (txs||[]).forEach(t=>{
-        if(!t.recurrent||t.type==="transfer_in"||t.type==="transfer_out") return;
-        if(t.recurrence==="monthly"){
-          // project if this tx would fall in this month
-          const tDate=new Date(t.date+"T12:00:00");
-          const tYM=`${tDate.getFullYear()}-${String(tDate.getMonth()+1).padStart(2,"0")}`;
-          if(tYM<ym){ // recurring started before this future month
-            if(t.type==="income") projected+=t.amount;
-            if(t.type==="expense") projected-=t.amount;
-          }
-        } else if(t.recurrence==="yearly"){
-          const tDate=new Date(t.date+"T12:00:00");
-          const sameMonth=String(tDate.getMonth()+1).padStart(2,"0")===String(mm).padStart(2,"0");
-          const tYY=tDate.getFullYear();
-          if(sameMonth && tYY<=yy){
-            if(t.type==="income") projected+=t.amount;
-            if(t.type==="expense") projected-=t.amount;
-          }
-        }
-      });
-      // Also add any transactions explicitly dated in this future month
-      const explicit=txs.filter(x=>x.date.startsWith(ym)&&!x.recurrent);
-      explicit.forEach(x=>{
-        if(x.type==="income"&&x.status!=="pending") projected+=x.amount;
-        if(x.type==="expense") projected-=x.amount; // pending future expenses still projected
-      });
-      return round2(projected);
-    }
-  };
-  const currentYM=TODAY.slice(0,7);
-  const maxTxYear=useMemo(()=>detectMaxYear(txs),[txs]);
-  const ALL_MONTHS=useMemo(()=>buildMonthsForYear(selYear),[selYear]);
-  const histMons=ALL_MONTHS.map(ym=>({
-    ym,
-    label:MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4),
-    balance:getMonBal(ym),
-    adjusted:balH[ym]?.adjusted,
-    isFuture:ym>currentYM,
-  }));
+  const fmtC=useCallback(n=>{try{const locale={pt:"pt-BR",en:"en-US",es:"es-ES",fr:"fr-FR",de:"de-DE",it:"it-IT",zh:"zh-CN"}[userCfg.lang]||"pt-BR";return n.toLocaleString(locale,{style:"currency",currency:userCfg.currency});}catch{return CURR.symbol+" "+Math.abs(n).toFixed(2);}},[userCfg.lang,userCfg.currency]);
 
   const toast_=useCallback((msg,color="#10B981")=>{setToast({msg,color});setTimeout(()=>setToast(null),2600);},[]);
-  const switchTab=useCallback((next)=>{setModal(null);setTab(next);requestAnimationFrame(()=>{try{document.querySelector(".scr")?.scrollTo({top:0,behavior:"instant"});}catch{};window.scrollTo?.(0,0);});},[]);
+  const switchTab=useCallback(next=>{setModal(null);setTab(next);},[]);
 
-  const buildBackupPayload = useCallback(()=>({transactions:txs,accounts:accs,balanceHistory:balH,userConfig:userCfg,customCategories:customCats,backupMeta:{exportedAt:new Date().toISOString(),version:"4.0",app:"Finance Real"}}),[txs,accs,balH,userCfg,customCats]);
-  const makeBackupFileName = useCallback(()=>`FinanceRealBackup_${ts()}.json`,[]);
-
-  const ensureDriveClient = useCallback(()=>{if(!driveClientConfigured) throw new Error("Configure o CLIENT_ID.");if(!window.google?.accounts?.oauth2) throw new Error("Biblioteca Google Identity não carregada.");if(!tokenClientRef.current){tokenClientRef.current=window.google.accounts.oauth2.initTokenClient({client_id:GOOGLE_DRIVE_CONFIG.CLIENT_ID,scope:GOOGLE_DRIVE_CONFIG.SCOPES,callback:()=>{}});}driveReadyRef.current=true;},[driveClientConfigured]);
-  const requestDriveAccess = useCallback((prompt='consent')=>new Promise((resolve,reject)=>{try{ensureDriveClient();tokenClientRef.current.callback=(resp)=>{if(resp?.error){reject(new Error(resp.error));return;}const token=resp?.access_token;if(!token){reject(new Error('Token não retornado.'));return;}accessTokenRef.current=token;sessionStorage.setItem('fr4_drive_token',token);setBkp(p=>({...p,driveConnected:true}));resolve(token);};tokenClientRef.current.requestAccessToken({prompt});}catch(err){reject(err);}}),[ensureDriveClient]);
-  const getDriveToken = useCallback(async(interactive=true)=>{if(accessTokenRef.current) return accessTokenRef.current;return await requestDriveAccess(interactive?'consent':'');},[requestDriveAccess]);
-
-  const doBackupDownload=()=>{const data=buildBackupPayload();const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=makeBackupFileName();a.click();URL.revokeObjectURL(u);setBkp(p=>({...p,lastBackup:new Date().toISOString()}));toast_(T.backupOk,"#3B82F6");};
-  const connectDrive=async()=>{try{toast_(T.driveConn,"#3B82F6");await requestDriveAccess('consent');toast_(T.driveOk);}catch(err){setBkp(p=>({...p,driveConnected:false}));toast_(err.message||'Falha','#EF4444');}};
-
-  const triggerRestore=()=>{if(fileRef.current)fileRef.current.click();};
-  const handleFile=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(!data.transactions||!data.accounts)throw new Error("invalid");setRestoreConfirm(data);setModal("restoreConfirm");}catch{toast_("Arquivo inválido","#EF4444");}};r.readAsText(file);e.target.value="";};
-  const doRestore=()=>{if(!restoreConfirm)return;setTxs(restoreConfirm.transactions||[]);setAccs(restoreConfirm.accounts||[]);if(restoreConfirm.balanceHistory)setBalH(restoreConfirm.balanceHistory);if(restoreConfirm.customCategories)setCustomCats(restoreConfirm.customCategories);setRestoreConfirm(null);setModal(null);toast_(T.restoreOk);};
-
-  // TX
-  const blankF={desc:"",amount:"",type:"expense",cat:"food",date:TODAY,dueDate:TODAY,status:"pending",accountId:accs[0]?.id||"acc1",recurrent:false,recurrence:"monthly",installments:false,installCount:2,installmentTotal:"",scheduled:false,scheduledDate:TODAY};
-  const [form,setForm]=useState(blankF);
-
-  // Get filterable cats based on form.type
-  const formCats = useMemo(()=>allCats.filter(c=>c.txType==="both"||(form.type==="income"?c.txType==="income":c.txType==="expense")),[allCats,form.type]);
-
-  const addTx=()=>{
-    if(!form.desc||!form.amount)return;
-    const toAdd=[];
-    if(form.installments&&form.installCount>=2){
-      // Use installmentTotal (total value) divided by installCount for each parcel
-      const totalVal=parseFloat(form.installmentTotal||form.amount)||0;
-      const parcelVal=round2(totalVal/form.installCount);
-      const base={...form,amount:parcelVal,id:uid(),installments:false,recurrent:false};
-      for(let i=0;i<form.installCount;i++){
-        const d=new Date(form.dueDate+"T12:00:00");
-        d.setMonth(d.getMonth()+i);
-        const dd=d.toISOString().slice(0,10);
-        toAdd.push({...base,id:uid(),desc:`${form.desc} (${i+1}/${form.installCount})`,date:i===0?form.date:dd,dueDate:dd});
-      }
-    } else {
-      toAdd.push({...form,amount:parseFloat(form.amount),id:uid()});
+  /* \u2500\u2500 PROJECTIONS FOR FUTURE MONTHS \u2500\u2500 */
+  // \u2705 FIX 4: income recurrents now included in future projections
+  const getMonBal=useCallback(ym=>{
+    const h=balH[ym];
+    if(h?.adjusted&&h?.manual!==null)return h.manual;
+    const isFutureMonth=ym>currentYM;
+    if(!isFutureMonth){
+      const t=txs.filter(x=>x.date.startsWith(ym));
+      return t.filter(x=>(x.type==="income")&&x.status==="paid").reduce((a,x)=>a+x.amount,0)
+            -t.filter(x=>(x.type==="expense")&&x.status==="paid").reduce((a,x)=>a+x.amount,0);
     }
-    setTxs(p=>[...toAdd,...p]);setModal(null);setForm(blankF);
-    toast_(toAdd.length>1?T.parcelsAdded.replace("{n}",toAdd.length):T.txAdded);
-  };
-
-  // TRANSFER
-  const blankTr={desc:"",amount:"",fromAccountId:accs[0]?.id||"",toAccountId:accs[1]?.id||accs[0]?.id||"",date:TODAY,status:"paid"};
-  useEffect(()=>{
-    if((accs||[]).length>=2){
-      setTrForm(f=>({
-        ...f,
-        fromAccountId:(accs.some(a=>a.id===f.fromAccountId)?f.fromAccountId:accs[0]?.id)||"",
-        toAccountId:(accs.some(a=>a.id===f.toAccountId && a.id!==((accs.some(x=>x.id===f.fromAccountId)?f.fromAccountId:accs[0]?.id)||""))?f.toAccountId:accs.find(a=>a.id!==((accs.some(x=>x.id===f.fromAccountId)?f.fromAccountId:accs[0]?.id)||""))?.id)||"",
-      }));
-    } else {
-      setTrForm(f=>({...f,fromAccountId:accs[0]?.id||"",toAccountId:""}));
-    }
-  },[accs]);
-
-  const addTransfer=()=>{
-    if((accs||[]).length<2){toast_("Cadastre ao menos duas contas para transferir","#EF4444");return;}
-    if(!trForm.amount||parseFloat(trForm.amount)<=0){toast_("Informe um valor válido","#EF4444");return;}
-    if(!trForm.fromAccountId||!trForm.toAccountId){toast_("Selecione as contas de origem e destino","#EF4444");return;}
-    if(trForm.fromAccountId===trForm.toAccountId){toast_(T.sameAccountErr,"#EF4444");return;}
-    const amt=parseFloat(trForm.amount);
-    const desc=trForm.desc.trim()||(T.transferL||"Transferência").replace(/^🔄\s*/,"");
-    const fromAcc=(accs||[]).find(a=>a.id===trForm.fromAccountId);
-    const toAcc=(accs||[]).find(a=>a.id===trForm.toAccountId);
-    const pairId=uid();
-    setTxs(p=>[
-      {id:uid(),desc:`${desc} → ${toAcc?.name||""}`,amount:amt,type:"transfer_out",cat:"transfer",date:trForm.date,status:trForm.status,accountId:trForm.fromAccountId,recurrent:false,dueDate:trForm.date,transferPairId:pairId},
-      {id:uid(),desc:`${desc} ← ${fromAcc?.name||""}`,amount:amt,type:"transfer_in",cat:"transfer",date:trForm.date,status:trForm.status,accountId:trForm.toAccountId,recurrent:false,dueDate:trForm.date,transferPairId:pairId},
-      ...p
-    ]);
-    setModal(null);
-    setTrForm(blankTr);
-    toast_(T.transferAdded);
-  };
-
-  const markPaid=id=>{setTxs(p=>{const tx=p.find(t=>t.id===id);if(!tx)return p;const pairId=tx.transferPairId;return p.map(t=>t.id===id || (pairId && t.transferPairId===pairId)?{...t,status:"paid"}:t);});toast_(T.paidOk);};
-  const delTx  =id=>{
-    setTxs(p=>{
-      const tx=p.find(t=>t.id===id);
-      if(!tx) return p;
-      const pairId=tx.transferPairId;
-      // Always remove both legs of a transfer
-      return p.filter(t=>!(t.id===id || (pairId && t.transferPairId===pairId)));
-    });
-    setModal(null);
-    toast_(T.removed,"#EF4444");
-  };
-
-  // ACCOUNT
-  const blankA={name:"",type:"checking",color:"#7C6FFF",icon:"🏦",openingBalance:"",includeInTotal:true};
-  const [aForm,setAForm]=useState(blankA);
-  const addAcc=()=>{if(!aForm.name)return;setAccs(p=>[...p,{...aForm,id:uid(),openingBalance:parseFloat(aForm.openingBalance)||0}]);setModal(null);setAForm(blankA);toast_(T.accAdded);};
-
-  const openAccAdjust=id=>{const others=(accs||[]).filter(a=>a.id!==id);const firstOther=others[0]?.id||"";setEditAccId(id);setAccRealBal(String(getAccBal(id)));setAccAdjNote("");setAccDeleteFutureMode("transfer");setAccDeleteTargetId(firstOther);setAccDeleteBalanceMode("transfer");setAccDeleteBalanceTargetId(firstOther);setModal("accAdj");};
-  const saveAccAdjustmentTx=()=>{const real=parseFloat(accRealBal);if(isNaN(real)||!editAccId)return;const diff=round2(real-getAccBal(editAccId));if(Math.abs(diff)<0.005){toast_(XT.noDifference,"#F59E0B");return;}setTxs(p=>[{id:uid(),desc:accAdjNote.trim()||XT.adjustmentAutoDesc,amount:Math.abs(diff),type:diff>=0?"income":"expense",cat:"adjustment",date:TODAY,status:"paid",accountId:editAccId,recurrent:false,dueDate:TODAY},...p]);setModal(null);toast_(XT.adjustmentCreated,"#8B5CF6");};
-  const saveAccBaseCorrection=()=>{const real=parseFloat(accRealBal);if(isNaN(real)||!editAccId)return;const diff=round2(real-getAccBal(editAccId));if(Math.abs(diff)<0.005){toast_(XT.noDifference,"#F59E0B");return;}setAccs(p=>p.map(a=>a.id===editAccId?{...normalizeAccount(a),openingBalance:round2(normalizeAccount(a).openingBalance+diff)}:a));setModal(null);toast_(XT.baseCorrected,"#3B82F6");};
-  const deleteAccountAndReconcile=()=>{if(!editAccId)return;if((accs||[]).length<=1){toast_(XT.cannotDeleteLastAccount,"#EF4444");return;}const acc=(accs||[]).find(a=>a.id===editAccId);if(!acc)return;if(accDeleteFutureMode==="transfer" && !accDeleteTargetId){toast_(XT.deleteNeedsTarget,"#EF4444");return;}if(accDeleteBalanceMode==="transfer" && !accDeleteBalanceTargetId){toast_(XT.deleteNeedsTarget,"#EF4444");return;}const currentBalance=round2(getAccBal(editAccId));setTxs(prev=>{let next=[];for(const t of (prev||[])){if(t.accountId!==editAccId){next.push(t);continue;}const isFuturePending=t.status==="pending"&&(t.dueDate||TODAY)>=TODAY;if(isFuturePending){if(accDeleteFutureMode==="delete")continue;next.push({...t,accountId:accDeleteTargetId});continue;}next.push({...t,accountId:null,accountRemoved:true,accountNameSnapshot:acc.name,accountIconSnapshot:acc.icon,accountColorSnapshot:acc.color});}if(accDeleteBalanceMode==="transfer" && accDeleteBalanceTargetId && Math.abs(currentBalance)>=0.005){next=[{id:uid(),desc:`${XT.closingTransferDesc}: ${acc.name}`,amount:Math.abs(currentBalance),type:currentBalance>=0?"income":"expense",cat:"adjustment",date:TODAY,status:"paid",accountId:accDeleteBalanceTargetId,recurrent:false,dueDate:TODAY},...next];}return next;});setAccs(prev=>(prev||[]).filter(a=>a.id!==editAccId));setModal(null);toast_(XT.accountDeleted,"#EF4444");};
-
-  // BAL ADJ
-  const saveBal=()=>{const v=parseFloat(tmpBal);if(isNaN(v))return;setBalH(p=>({...p,[editBM]:{adjusted:true,manual:v}}));setModal(null);toast_(T.adjSaved);};
-  const rmBal=ym=>{setBalH(p=>({...p,[ym]:{adjusted:false,manual:null}}));toast_(T.adjRemoved);};
-
-  // CATEGORY MANAGEMENT
-  const addCat=()=>{
-    if(!catForm.name.trim())return;
-    const newCat={id:"custom_"+uid(),icon:catForm.icon,color:catForm.color,txType:catForm.txType,label:catForm.name.trim(),builtin:false};
-    setCustomCats(p=>[...(p||[]),newCat]);
-    setCatForm({name:"",icon:"📦",color:"#F0A500",txType:"both"});
-    setModal(null);
-    toast_(T.catAdded);
-  };
-  const deleteCat=(catId)=>{
-    setCustomCats(p=>(p||[]).filter(c=>c.id!==catId));
-    setTxs(p=>(p||[]).map(t=>t.cat===catId?{...t,cat:"other"}:t));
-    toast_(T.catDeleted,"#EF4444");
-  };
-  const renameCat=(catId)=>{
-    if(!catEditName.trim())return;
-    setCustomCats(p=>(p||[]).map(c=>c.id===catId?{...c,label:catEditName.trim()}:c));
-    setCatEditId(null);setCatEditName("");
-    toast_(T.catRenamed);
-  };
-
-  useEffect(()=>{
-    if(!formCats.length) return;
-    const currentValid=formCats.some(c=>c.id===form.cat);
-    if(!currentValid){
-      setForm(f=>({...f,cat:formCats[0].id}));
-    }
-  },[form.type,allCats]);
-
-  // PIN
-  const handlePinKey=d=>{if(pinStep===1){const n=pin1+d;setPin1(n);if(n.length===4){setPinStep(2);setPin2("");}}else{const n=pin2+d;setPin2(n);if(n.length===4){if(n===pin1){localStorage.setItem("fr4_pin",n);setUser(p=>({...p,pinEnabled:true}));setShowPin(false);setPinStep(1);setPin1("");setPin2("");toast_(T.pinSaved);}else{toast_(T.pinMismatch,"#EF4444");setPinStep(1);setPin1("");setPin2("");}}}};
-  const delPinKey=()=>{if(pinStep===1)setPin1(p=>p.slice(0,-1));else setPin2(p=>p.slice(0,-1));};
-  const disablePin=()=>{localStorage.removeItem("fr4_pin");setUser(p=>({...p,pinEnabled:false}));toast_("PIN desativado");};
-
-  // PIX
-  const TEST_PIX={key:"clvy@hotmail.com",receiverName:"C LVY",receiverCity:"RIO",usdToBrl:5};
-  const emv=(id,value)=>{const s=String(value??"");return id+String(s.length).padStart(2,"0")+s;};
-  const crc16=(payload)=>{let crc=0xFFFF;for(let i=0;i<payload.length;i++){crc^=payload.charCodeAt(i)<<8;for(let j=0;j<8;j++){crc=(crc&0x8000)?((crc<<1)^0x1021):(crc<<1);crc&=0xFFFF;}}return crc.toString(16).toUpperCase().padStart(4,"0");};
-  const buildPixCode=({amountBRL,label})=>{const amount=Number(amountBRL||0).toFixed(2);const merchantAccount=emv("00","br.gov.bcb.pix")+emv("01",TEST_PIX.key)+emv("02",String(label||"Finance Real").slice(0,25));const additionalData=emv("05","FRTESTE");const payload=emv("00","01")+emv("26",merchantAccount)+emv("52","0000")+emv("53","986")+emv("54",amount)+emv("58","BR")+emv("59",TEST_PIX.receiverName.slice(0,25))+emv("60",TEST_PIX.receiverCity.slice(0,15))+emv("62",additionalData);return payload+"6304"+crc16(payload+"6304");};
-  const copyText=async(t)=>{try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(t);}else{const ta=document.createElement("textarea");ta.value=t;ta.setAttribute("readonly","");ta.style.position="fixed";ta.style.left="-9999px";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);}toast_("Código PIX copiado ✓","#10B981");}catch{toast_("Não foi possível copiar","#EF4444");}};
-  const donate=type=>{const plans={one_time_20_usd:{usd:20,label:"☕ Uma vez"},annual_10_usd:{usd:10,label:"⭐ Apoiador Anual"},monthly_1_usd:{usd:1,label:"🔁 Apoiador Mensal"}};const plan=plans[type];if(!plan)return;const amountBRL=plan.usd*TEST_PIX.usdToBrl;setPixModal({type,label:plan.label,usdValue:plan.usd,brlValue:amountBRL,pixCode:buildPixCode({amountBRL,label:plan.label}),key:TEST_PIX.key,rate:TEST_PIX.usdToBrl});};
-
-  // For future months, project recurring transactions as preview entries
-  const projectedTxsForFuture = useMemo(()=>{
-    if(selMon<=currentYM) return [];
-    const [yy,mm]=selMon.split("-").map(Number);
-    const projected=[];
+    // Future month: project recurring transactions (BOTH income AND expense)
+    const[yy,mm]=ym.split("-").map(Number);
+    let projected=0;
     (txs||[]).forEach(t=>{
-      if(!t.recurrent||t.type==="transfer_in"||t.type==="transfer_out") return;
+      if(t.type==="transfer_in"||t.type==="transfer_out")return;
+      if(!t.recurrent)return;
       if(t.recurrence==="monthly"){
         const tYM=t.date.slice(0,7);
-        if(tYM<selMon){
-          // project into this month keeping same day
-          const day=t.date.slice(8,10);
-          projected.push({
-            ...t,
-            id:`proj_${t.id}_${selMon}`,
-            date:`${selMon}-${day}`,
-            dueDate:`${selMon}-${day}`,
-            status:"pending",
-            _isProjection:true,
-          });
+        if(tYM<ym){
+          if(t.type==="income")projected+=t.amount;
+          if(t.type==="expense")projected-=t.amount;
         }
       } else if(t.recurrence==="yearly"){
         const tDate=new Date(t.date+"T12:00:00");
         const sameMonth=String(tDate.getMonth()+1).padStart(2,"0")===String(mm).padStart(2,"0");
-        if(sameMonth && tDate.getFullYear()<=yy){
-          projected.push({
-            ...t,
-            id:`proj_${t.id}_${selMon}`,
-            date:`${selMon}-${String(tDate.getDate()).padStart(2,"0")}`,
-            dueDate:`${selMon}-${String(tDate.getDate()).padStart(2,"0")}`,
-            status:"pending",
-            _isProjection:true,
-          });
+        if(sameMonth&&tDate.getFullYear()<=yy){
+          if(t.type==="income")projected+=t.amount;
+          if(t.type==="expense")projected-=t.amount;
+        }
+      }
+    });
+    // Also add non-recurring transactions explicitly dated in this future month
+    (txs||[]).filter(x=>x.date.startsWith(ym)&&!x.recurrent).forEach(x=>{
+      if(x.type==="income")projected+=x.amount;
+      if(x.type==="expense")projected-=x.amount;
+    });
+    return round2(projected);
+  },[balH,txs,currentYM]);
+
+  // \u2705 FIX 4: projected txs for future months now include income recurrents
+  const projectedTxsForFuture=useMemo(()=>{
+    if(selMon<=currentYM)return[];
+    const[yy,mm]=selMon.split("-").map(Number);
+    const projected=[];
+    (txs||[]).forEach(t=>{
+      if(!t.recurrent||t.type==="transfer_in"||t.type==="transfer_out")return;
+      if(t.recurrence==="monthly"){
+        const tYM=t.date.slice(0,7);
+        if(tYM<selMon){
+          const day=t.date.slice(8,10);
+          projected.push({...t,id:`proj_${t.id}_${selMon}`,date:`${selMon}-${day}`,dueDate:`${selMon}-${day}`,status:"pending",_isProjection:true});
+        }
+      } else if(t.recurrence==="yearly"){
+        const tDate=new Date(t.date+"T12:00:00");
+        const sameMonth=String(tDate.getMonth()+1).padStart(2,"0")===String(mm).padStart(2,"0");
+        if(sameMonth&&tDate.getFullYear()<=yy){
+          projected.push({...t,id:`proj_${t.id}_${selMon}`,date:`${selMon}-${String(tDate.getDate()).padStart(2,"0")}`,dueDate:`${selMon}-${String(tDate.getDate()).padStart(2,"0")}`,status:"pending",_isProjection:true});
         }
       }
     });
     return projected;
   },[selMon,txs,currentYM]);
 
+  const mTxs=txs.filter(t=>t.date.startsWith(selMon));
+  const income=mTxs.filter(t=>t.type==="income"&&t.status==="paid").reduce((a,t)=>a+t.amount,0);
+  const expenses=mTxs.filter(t=>t.type==="expense"&&t.status==="paid").reduce((a,t)=>a+t.amount,0);
+  const pending=txs.filter(t=>t.status==="pending"&&t.type==="expense");
+  const totPend=pending.reduce((a,t)=>a+t.amount,0);
+  const overdue=pending.filter(t=>ddiff(t.dueDate)<0);
+  const dueSoon=pending.filter(t=>{const d=ddiff(t.dueDate);return d>=0&&d<=3;});
+  const totAssets=accs.filter(a=>a.includeInTotal).reduce((s,a)=>s+getAccBal(a.id),0);
+
+  const histMons=ALL_MONTHS.map(ym=>({ym,label:MONTHS_BASE[parseInt(ym.split("-")[1])-1]+"/"+ym.slice(2,4),balance:getMonBal(ym),adjusted:balH[ym]?.adjusted,isFuture:ym>currentYM}));
+
   const filtTx=[
-    ...(selMon>currentYM ? projectedTxsForFuture : []),
+    ...(selMon>currentYM?projectedTxsForFuture:[]),
     ...txs.filter(t=>t.date.startsWith(selMon)),
-  ]
-    .filter(t=>fAcc==="all"||t.accountId===fAcc)
-    .filter(t=>fStatus==="all"||t.status===fStatus)
-    .sort((a,b)=>b.date.localeCompare(a.date));
+  ].filter(t=>fAcc==="all"||t.accountId===fAcc).filter(t=>fStatus==="all"||t.status===fStatus).sort((a,b)=>b.date.localeCompare(a.date));
+
+  /* \u2500\u2500 TX FORM \u2500\u2500 */
+  const blankF={desc:"",amount:"",type:"expense",cat:"food",date:TODAY,dueDate:TODAY,status:"pending",accountId:accs[0]?.id||"acc1",recurrent:false,recurrence:"monthly",installments:false,installCount:2,installmentTotal:"",scheduled:false,scheduledDate:TODAY};
+  const[form,setForm]=useState(blankF);
+  const formCats=useMemo(()=>allCats.filter(c=>c.txType==="both"||(form.type==="income"?c.txType==="income":c.txType==="expense")),[allCats,form.type]);
+
+  useEffect(()=>{if(!formCats.length)return;const ok=formCats.some(c=>c.id===form.cat);if(!ok)setForm(f=>({...f,cat:formCats[0].id}));},[form.type,allCats]);
+
+  // \u2705 FIX 1: first installment uses the exact dueDate, subsequent months increment
+  const addTx=()=>{
+    if(!form.desc||!form.amount)return;
+    const toAdd=[];
+    if(form.installments&&form.installCount>=2){
+      const totalVal=parseFloat(form.installmentTotal||form.amount)||0;
+      const parcelVal=round2(totalVal/form.installCount);
+      const seriesId="s_"+uid();
+      for(let i=0;i<form.installCount;i++){
+        // \u2705 FIX 1: first parcel on exact dueDate, then +1 month each
+        const dDate=new Date(form.dueDate+"T12:00:00");
+        dDate.setMonth(dDate.getMonth()+i);
+        const dd=dDate.toISOString().slice(0,10);
+        toAdd.push({...form,id:uid(),amount:parcelVal,installments:false,recurrent:false,
+          desc:`${form.desc} (${i+1}/${form.installCount})`,
+          date:i===0?form.date:dd, // keep original date for first
+          dueDate:dd, // \u2705 first parcel = exact dueDate
+          seriesId,
+          installmentIndex:i+1,
+          installmentTotal:form.installCount,
+        });
+      }
+    } else {
+      const seriesId=form.recurrent?"s_"+uid():undefined;
+      toAdd.push({...form,amount:parseFloat(form.amount),id:uid(),seriesId});
+    }
+    setTxs(p=>[...toAdd,...p]);setModal(null);setForm(blankF);
+    toast_(toAdd.length>1?T.parcelsAdded.replace("{n}",toAdd.length):T.txAdded);
+  };
+
+  /* \u2500\u2500 TRANSFER \u2500\u2500 */
+  const addTransfer=()=>{
+    if((accs||[]).length<2){toast_("Cadastre ao menos duas contas","#EF4444");return;}
+    if(!trForm.amount||parseFloat(trForm.amount)<=0){toast_("Informe um valor v\u00e1lido","#EF4444");return;}
+    if(!trForm.fromAccountId||!trForm.toAccountId){toast_("Selecione as contas","#EF4444");return;}
+    if(trForm.fromAccountId===trForm.toAccountId){toast_(T.sameAccountErr,"#EF4444");return;}
+    const amt=parseFloat(trForm.amount);
+    const desc=trForm.desc.trim()||"Transfer\u00eancia";
+    const fromAcc=(accs||[]).find(a=>a.id===trForm.fromAccountId);
+    const toAcc=(accs||[]).find(a=>a.id===trForm.toAccountId);
+    const pairId=uid();
+    setTxs(p=>[
+      {id:uid(),desc:`${desc} \u2192 ${toAcc?.name||""}`,amount:amt,type:"transfer_out",cat:"transfer",date:trForm.date,status:trForm.status,accountId:trForm.fromAccountId,recurrent:false,dueDate:trForm.date,transferPairId:pairId},
+      {id:uid(),desc:`${desc} \u2190 ${fromAcc?.name||""}`,amount:amt,type:"transfer_in",cat:"transfer",date:trForm.date,status:trForm.status,accountId:trForm.toAccountId,recurrent:false,dueDate:trForm.date,transferPairId:pairId},
+      ...p
+    ]);
+    setModal(null);setTrForm({desc:"",amount:"",fromAccountId:accs[0]?.id||"",toAccountId:accs[1]?.id||"",date:TODAY,status:"paid"});
+    toast_(T.transferAdded);
+  };
+
+  /* \u2500\u2500 MARK PAID \u2500\u2500 */
+  const markPaid=id=>{setTxs(p=>{const tx=p.find(t=>t.id===id);if(!tx)return p;const pairId=tx.transferPairId;return p.map(t=>t.id===id||(pairId&&t.transferPairId===pairId)?{...t,status:"paid"}:t);});toast_(T.paidOk);};
+
+  /* \u2500\u2500 \u2705 FIX 2: EDIT TX \u2500\u2500 */
+  const openEditTx=tx=>{
+    setEditTx(tx);
+    setEditForm({
+      desc:tx.desc,amount:String(tx.amount),type:tx.type,cat:tx.cat,
+      date:tx.date,dueDate:tx.dueDate||tx.date,status:tx.status,
+      accountId:tx.accountId,recurrent:tx.recurrent,recurrence:tx.recurrence||"monthly",
+    });
+    setModal("editTx");
+  };
+
+  const saveEditTx=()=>{
+    if(!editForm||!editTx)return;
+    const newAmt=parseFloat(editForm.amount)||0;
+    setTxs(p=>p.map(t=>{
+      if(t.id!==editTx.id)return t;
+      return{...t,...editForm,amount:newAmt};
+    }));
+    setModal(null);setEditTx(null);setEditForm(null);
+    toast_(T.editTxSaved);
+  };
+
+  const editFormCats=useMemo(()=>{
+    if(!editForm)return allCats;
+    return allCats.filter(c=>c.txType==="both"||(editForm.type==="income"?c.txType==="income":c.txType==="expense"));
+  },[allCats,editForm]);
+
+  /* \u2500\u2500 \u2705 FIX 3: DELETE WITH SERIES OPTIONS \u2500\u2500 */
+  const openDeleteTx=tx=>{
+    setDelTxTarget(tx);
+    // Check if it has a seriesId with multiple members
+    const seriesCount=tx.seriesId?(txs||[]).filter(t=>t.seriesId===tx.seriesId).length:0;
+    if(tx.seriesId&&seriesCount>1){
+      setDelMode(null);// Show modal to choose
+      setModal("deleteSeries");
+    } else {
+      // Single tx \u2014 delete immediately
+      execDeleteTx(tx,"only");
+    }
+  };
+
+  const execDeleteTx=(tx,mode)=>{
+    if(!tx)return;
+    setTxs(p=>{
+      if(!tx.seriesId||mode==="only"){
+        // Also remove transfer pair
+        const pairId=tx.transferPairId;
+        return p.filter(t=>!(t.id===tx.id||(pairId&&t.transferPairId===pairId)));
+      }
+      if(mode==="all"){
+        return p.filter(t=>t.seriesId!==tx.seriesId);
+      }
+      if(mode==="thisAndFuture"){
+        // Remove this and all series members with date >= this tx's date
+        return p.filter(t=>{
+          if(t.seriesId!==tx.seriesId)return true;
+          return t.date<tx.date; // keep past ones
+        });
+      }
+      return p;
+    });
+    setModal(null);setDelTxTarget(null);setDelMode(null);
+    if(modal==="txDet"||modal==="deleteSeries")setModal(null);
+    toast_(T.removed,"#EF4444");
+  };
+
+  /* \u2500\u2500 ACCOUNT MANAGEMENT \u2500\u2500 */
+  const openAccAdjust=id=>{const others=(accs||[]).filter(a=>a.id!==id);const firstOther=others[0]?.id||"";setEditAccId(id);setAccRealBal(String(getAccBal(id)));setAccAdjNote("");setAccDeleteFutureMode("transfer");setAccDeleteTargetId(firstOther);setAccDeleteBalanceMode("transfer");setAccDeleteBalanceTargetId(firstOther);setModal("accAdj");};
+  const saveAccAdjustmentTx=()=>{const real=parseFloat(accRealBal);if(isNaN(real)||!editAccId)return;const diff=round2(real-getAccBal(editAccId));if(Math.abs(diff)<0.005){toast_(XT.noDifference,"#F59E0B");return;}setTxs(p=>[{id:uid(),desc:accAdjNote.trim()||XT.adjustmentAutoDesc||"Ajuste",amount:Math.abs(diff),type:diff>=0?"income":"expense",cat:"adjustment",date:TODAY,status:"paid",accountId:editAccId,recurrent:false,dueDate:TODAY},...p]);setModal(null);toast_(XT.adjustmentCreated,"#8B5CF6");};
+  const saveAccBaseCorrection=()=>{const real=parseFloat(accRealBal);if(isNaN(real)||!editAccId)return;const diff=round2(real-getAccBal(editAccId));if(Math.abs(diff)<0.005){toast_(XT.noDifference,"#F59E0B");return;}setAccs(p=>p.map(a=>a.id===editAccId?{...normalizeAccount(a),openingBalance:round2(normalizeAccount(a).openingBalance+diff)}:a));setModal(null);toast_(XT.baseCorrected,"#3B82F6");};
+  const deleteAccountAndReconcile=()=>{if(!editAccId)return;if((accs||[]).length<=1){toast_(XT.cannotDeleteLastAccount,"#EF4444");return;}const acc=(accs||[]).find(a=>a.id===editAccId);if(!acc)return;if(accDeleteFutureMode==="transfer"&&!accDeleteTargetId){toast_(XT.deleteNeedsTarget,"#EF4444");return;}if(accDeleteBalanceMode==="transfer"&&!accDeleteBalanceTargetId){toast_(XT.deleteNeedsTarget,"#EF4444");return;}const currentBalance=round2(getAccBal(editAccId));setTxs(prev=>{let next=[];for(const t of(prev||[])){if(t.accountId!==editAccId){next.push(t);continue;}const isFuturePending=t.status==="pending"&&(t.dueDate||TODAY)>=TODAY;if(isFuturePending){if(accDeleteFutureMode==="delete")continue;next.push({...t,accountId:accDeleteTargetId});continue;}next.push({...t,accountId:null,accountRemoved:true,accountNameSnapshot:acc.name,accountIconSnapshot:acc.icon,accountColorSnapshot:acc.color});}if(accDeleteBalanceMode==="transfer"&&accDeleteBalanceTargetId&&Math.abs(currentBalance)>=0.005){next=[{id:uid(),desc:`${XT.closingTransferDesc||"Encerramento"}: ${acc.name}`,amount:Math.abs(currentBalance),type:currentBalance>=0?"income":"expense",cat:"adjustment",date:TODAY,status:"paid",accountId:accDeleteBalanceTargetId,recurrent:false,dueDate:TODAY},...next];}return next;});setAccs(prev=>(prev||[]).filter(a=>a.id!==editAccId));setModal(null);toast_(XT.accountDeleted||"Conta exclu\u00edda \u2713","#EF4444");};
+
+  /* \u2500\u2500 BAL ADJ \u2500\u2500 */
+  const saveBal=()=>{const v=parseFloat(tmpBal);if(isNaN(v))return;setBalH(p=>({...p,[editBM]:{adjusted:true,manual:v}}));setModal(null);toast_(T.adjSaved);};
+  const rmBal=ym=>{setBalH(p=>({...p,[ym]:{adjusted:false,manual:null}}));toast_(T.adjRemoved);};
+
+  /* \u2500\u2500 CATEGORIES \u2500\u2500 */
+  const addCat=()=>{if(!catForm.name.trim())return;const newCat={id:"custom_"+uid(),icon:catForm.icon,color:catForm.color,txType:catForm.txType,label:catForm.name.trim(),builtin:false};setCustomCats(p=>[...(p||[]),newCat]);setCatForm({name:"",icon:"\ud83d\udce6",color:"#F0A500",txType:"both"});setModal(null);toast_(T.catAdded);};
+  const deleteCat=catId=>{setCustomCats(p=>(p||[]).filter(c=>c.id!==catId));setTxs(p=>(p||[]).map(t=>t.cat===catId?{...t,cat:"other"}:t));toast_(T.catDeleted,"#EF4444");};
+  const renameCat=catId=>{if(!catEditName.trim())return;setCustomCats(p=>(p||[]).map(c=>c.id===catId?{...c,label:catEditName.trim()}:c));setCatEditId(null);setCatEditName("");toast_(T.catRenamed);};
+
+  /* \u2500\u2500 ACCOUNT FORM \u2500\u2500 */
+  const blankA={name:"",type:"checking",color:"#7C6FFF",icon:"\ud83c\udfe6",openingBalance:"",includeInTotal:true};
+  const[aForm,setAForm]=useState(blankA);
+  const addAcc=()=>{if(!aForm.name)return;setAccs(p=>[...p,{...aForm,id:uid(),openingBalance:parseFloat(aForm.openingBalance)||0}]);setModal(null);setAForm(blankA);toast_(T.accAdded);};
+
+  /* \u2500\u2500 BACKUP \u2500\u2500 */
+  const doBackupDownload=()=>{const data={transactions:txs,accounts:accs,balanceHistory:balH,userConfig:userCfg,customCategories:customCats,backupMeta:{exportedAt:new Date().toISOString(),version:"5.0",app:"Finance Real"}};const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=`FinanceRealBackup_${ts()}.json`;a.click();URL.revokeObjectURL(u);toast_(T.backupOk,"#3B82F6");};
+  const handleFile=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(!data.transactions||!data.accounts)throw new Error("invalid");setTxs(data.transactions||[]);setAccs(data.accounts||[]);if(data.balanceHistory)setBalH(data.balanceHistory);if(data.customCategories)setCustomCats(data.customCategories);toast_("Dados restaurados \u2713");}catch{toast_("Arquivo inv\u00e1lido","#EF4444");}};r.readAsText(file);e.target.value="";};
 
   const css=`
     @keyframes su{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -867,10 +554,7 @@ function App(){
     label{font-size:11px;font-weight:700;color:#64748B;margin-bottom:5px;display:block;letter-spacing:.7px;text-transform:uppercase}
     .scr{overflow-y:auto;-webkit-overflow-scrolling:touch}
     .sh{font-size:12px;color:#64748B;letter-spacing:.8px;font-weight:800;margin-bottom:10px;margin-top:4px}
-    .cat-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid;transition:all .2s}
   `;
-
-  if(locked) return(<><style>{css}</style><PinLock T={T} onUnlock={()=>{setLocked(false);if(userCfg.tipsEnabled)setShowTip(true);}}/></>);
 
   return(
     <div style={{fontFamily:"'Syne',sans-serif",background:"#080C18",height:"100dvh",maxWidth:430,margin:"0 auto",color:"#E8EDF5",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column",width:"100%",boxSizing:"border-box"}}>
@@ -883,22 +567,21 @@ function App(){
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <AppIcon size={22}/>
           <span style={{fontSize:13,fontWeight:800,letterSpacing:.3}}>Finance Real</span>
-          <span style={{fontSize:9,fontWeight:800,background:"#6366F120",color:"#818CF8",border:"1px solid #6366F140",borderRadius:20,padding:"1px 6px"}}>PRIVADO</span>
-          {userCfg.supporter&&<span style={{fontSize:9,fontWeight:800,background:"#EC489920",color:"#EC4899",border:"1px solid #EC489940",borderRadius:20,padding:"1px 6px"}}>{T.supporterBadge}</span>}
+          <span style={{fontSize:9,fontWeight:800,background:"#6366F120",color:"#818CF8",border:"1px solid #6366F140",borderRadius:20,padding:"1px 6px"}}>v5</span>
         </div>
         <div style={{display:"flex",gap:7,alignItems:"center"}}>
-          {bkpCfg.driveConnected&&<span style={{fontSize:9,color:"#34D399",fontWeight:800,background:"#34D39918",border:"1px solid #34D39940",borderRadius:8,padding:"2px 6px"}}>●DRIVE</span>}
-          {deferPmt&&<button onClick={()=>{deferPmt.prompt();deferPmt.userChoice.then(()=>setDeferPmt(null));}} style={{background:"#6366F120",border:"1px solid #6366F140",color:"#818CF8",borderRadius:9,padding:"3px 8px",fontSize:10,cursor:"pointer",fontWeight:700}}>{T.installBtn.split(" ")[0]}</button>}
+          <button onClick={doBackupDownload} style={{background:"#0D1526",border:"1px solid #1A2640",borderRadius:9,padding:"4px 9px",color:"#64748B",fontSize:10,cursor:"pointer",fontWeight:700}}>\u2601\ufe0f BKP</button>
+          {deferPmt&&<button onClick={()=>{deferPmt.prompt();deferPmt.userChoice.then(()=>setDeferPmt(null));}} style={{background:"#6366F120",border:"1px solid #6366F140",color:"#818CF8",borderRadius:9,padding:"3px 8px",fontSize:10,cursor:"pointer",fontWeight:700}}>\ud83d\udcf2 Instalar</button>}
         </div>
       </div>
 
       {/* ALERT STRIP */}
       {(overdue.length>0||dueSoon.length>0)&&(
         <div className="fi" style={{margin:"7px 13px 0",flexShrink:0,background:overdue.length>0?"#EF444414":"#F59E0B12",border:`1px solid ${overdue.length>0?"#EF444440":"#F59E0B40"}`,borderRadius:13,padding:"8px 12px",display:"flex",gap:8,alignItems:"center"}}>
-          <span className="pulse" style={{fontSize:16,flexShrink:0}}>{overdue.length>0?"🚨":"⚠️"}</span>
+          <span className="pulse" style={{fontSize:16,flexShrink:0}}>{overdue.length>0?"\ud83d\udea8":"\u26a0\ufe0f"}</span>
           <div style={{flex:1,minWidth:0}}>
-            <p style={{fontSize:12,fontWeight:700,color:overdue.length>0?"#EF4444":"#F59E0B"}}>{overdue.length>0?`${overdue.length} ${T.overdue.replace("🚨 ","")}` :`${dueSoon.length} ${T.dueSoon.replace("⚠️ ","")}`}</p>
-            <p style={{fontSize:10,color:"#64748B",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(overdue.length>0?overdue:dueSoon).slice(0,3).map(t=>t.desc).join(" · ")}</p>
+            <p style={{fontSize:12,fontWeight:700,color:overdue.length>0?"#EF4444":"#F59E0B"}}>{overdue.length>0?`${overdue.length} ${T.overdue.replace("\ud83d\udea8 ","")}` :`${dueSoon.length} ${T.dueSoon.replace("\u26a0\ufe0f ","")}`}</p>
+            <p style={{fontSize:10,color:"#64748B",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(overdue.length>0?overdue:dueSoon).slice(0,3).map(t=>t.desc).join(" \u00b7 ")}</p>
           </div>
           <button type="button" onClick={()=>switchTab("alerts")} style={{background:"none",border:"1px solid #1F2D45",color:"#94A3B8",borderRadius:8,padding:"3px 8px",fontSize:9,cursor:"pointer",fontWeight:700,flexShrink:0}}>VER</button>
         </div>
@@ -907,773 +590,35 @@ function App(){
       {/* CONTENT */}
       <div className="scr" style={{flex:1,padding:"0 13px 82px",paddingTop:8,overflowX:"hidden",width:"100%",boxSizing:"border-box"}}>
 
-        {/* ═══ HOME ═══════════════════════════════════ */}
+        {/* \u2550\u2550\u2550 HOME \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */}
         {tab==="home"&&(
           <div className="fi">
-
-            {/* ── PATRIMÔNIO TOTAL ── */}
+            {/* PATRIM\u00d4NIO */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0 8px"}}>
               <div>
                 <p style={{fontSize:10,color:"#475569",fontWeight:700,letterSpacing:.8,textTransform:"uppercase"}}>{T.totalAssets}</p>
                 <p className="mono" style={{fontSize:28,fontWeight:700,letterSpacing:-1,lineHeight:1.1,color:totAssets>=0?"#34D399":"#F87171"}}>{fmtC(totAssets)}</p>
               </div>
-              <button onClick={()=>setModal("backup")} style={{background:"#0D1526",border:"1px solid #1A2640",borderRadius:12,padding:"8px 11px",color:"#64748B",fontSize:10,cursor:"pointer",fontWeight:700,display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}><span style={{fontSize:17}}>☁️</span><span style={{letterSpacing:.5}}>BKP</span></button>
             </div>
 
-            {/* ── SELETOR ANO + MÊS (scroll horizontal) ── */}
-            <div style={{marginBottom:10,flexShrink:0}}>
+            {/* YEAR + MONTH SELECTOR */}
+            <div style={{marginBottom:10}}>
               <div style={{display:"flex",alignItems:"center",gap:0,background:"#0D1526",border:"1px solid #1A2640",borderRadius:14,padding:"3px 4px",marginBottom:7}}>
-                <button onClick={()=>{const y=selYear-1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"none",border:"none",color:"#64748B",width:32,height:30,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0,borderRadius:10}}>‹</button>
+                <button onClick={()=>{const y=selYear-1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"none",border:"none",color:"#64748B",width:32,height:30,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0,borderRadius:10}}>\u2039</button>
                 <div style={{flex:1,textAlign:"center",fontSize:13,fontWeight:800,color:"#818CF8",letterSpacing:1}}>{selYear}</div>
-                <button onClick={()=>{const y=selYear+1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"none",border:"none",color:"#64748B",width:32,height:30,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0,borderRadius:10}}>›</button>
+                <button onClick={()=>{const y=selYear+1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"none",border:"none",color:"#64748B",width:32,height:30,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0,borderRadius:10}}>\u203a</button>
               </div>
               <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:3}}>
-                {ALL_MONTHS.map(ym=>{
-                  const isFut=ym>currentYM;
-                  const isNow=ym===currentYM;
-                  const isSel=ym===selMon;
-                  const hasTx=txs.some(t=>t.date.startsWith(ym));
-                  return(<button key={ym} onClick={()=>setSelMon(ym)} style={{
-                    flexShrink:0,padding:"5px 10px",borderRadius:20,
-                    border:`1.5px ${isFut?"dashed":"solid"}`,
-                    borderColor:isSel?"#6366F1":isNow?"#2A3A70":"#1A2640",
-                    background:isSel?"#6366F125":isNow&&!isSel?"#1A2640":"transparent",
-                    color:isSel?"#818CF8":isNow?"#94A3B8":hasTx?"#64748B":"#2E3D55",
-                    fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",
-                    position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:2
-                  }}>
-                    {MONTHS_BASE[parseInt(ym.split("-")[1])-1]}
-                    {isNow&&!isSel&&<span style={{width:4,height:4,borderRadius:"50%",background:"#6366F160",display:"block"}}/>}
-                    {hasTx&&!isNow&&!isSel&&<span style={{width:4,height:4,borderRadius:"50%",background:"#2A3A55",display:"block"}}/>}
-                    {isSel&&<span style={{width:4,height:4,borderRadius:"50%",background:"#6366F1",display:"block"}}/>}
-                  </button>);
-                })}
+                {ALL_MONTHS.map(ym=>{const isFut=ym>currentYM;const isNow=ym===currentYM;const isSel=ym===selMon;const hasTx=txs.some(t=>t.date.startsWith(ym));return(<button key={ym} onClick={()=>setSelMon(ym)} style={{flexShrink:0,padding:"5px 10px",borderRadius:20,border:`1.5px ${isFut?"dashed":"solid"}`,borderColor:isSel?"#6366F1":isNow?"#2A3A70":"#1A2640",background:isSel?"#6366F125":"transparent",color:isSel?"#818CF8":isNow?"#94A3B8":hasTx?"#64748B":"#2E3D55",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                  {MONTHS_BASE[parseInt(ym.split("-")[1])-1]}
+                  {isSel?<span style={{width:4,height:4,borderRadius:"50%",background:"#6366F1",display:"block"}}/>:hasTx?<span style={{width:4,height:4,borderRadius:"50%",background:"#2A3A55",display:"block"}}/>:<span style={{width:4,height:4,display:"block"}}/>}
+                </button>);})}
               </div>
             </div>
 
-            {/* ── CARD RESULTADO / PROJEÇÃO ── */}
+            {/* RESULT CARD */}
             {(()=>{
               const isFut=selMon>currentYM;
-              const proj=isFut?getMonProjection(selMon):null;
-              return(
-                <div style={{background:isFut?"linear-gradient(135deg,#0D1235,#0A0E20)":"linear-gradient(135deg,#0D1930,#0A1020)",border:`1px solid ${isFut?"#6366F145":"#1A2640"}`,borderRadius:20,padding:"14px 16px",marginBottom:11,position:"relative",overflow:"hidden",width:"100%",boxSizing:"border-box"}}>
-                  <div style={{position:"absolute",top:-24,right:-24,width:100,height:100,borderRadius:"50%",background:isFut?"radial-gradient(circle,#6366F122,transparent)":"radial-gradient(circle,#6366F118,transparent)",pointerEvents:"none"}}/>
-
-                  {/* Header */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                    <div style={{minWidth:0,flex:1}}>
-                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
-                        <p style={{fontSize:10,color:"#475569",fontWeight:700,letterSpacing:.8,textTransform:"uppercase"}}>
-                          {MONTHS_BASE[parseInt(selMon.split("-")[1])-1]} {selMon.slice(0,4)}
-                        </p>
-                        {isFut
-                          ? <span className="pill" style={{background:"#6366F120",color:"#818CF8",border:"1px solid #6366F140",fontSize:8}}>▷ PROJEÇÃO</span>
-                          : <span className="pill" style={{background:"#34D39915",color:"#34D399",border:"1px solid #34D39930",fontSize:8}}>● REAL</span>
-                        }
-                        {balH[selMon]?.adjusted&&<span className="pill" style={{background:"#F59E0B15",color:"#F59E0B",border:"1px solid #F59E0B30",fontSize:8}}>✏️</span>}
-                      </div>
-                      <p className="mono" style={{fontSize:27,fontWeight:700,letterSpacing:-1,lineHeight:1.1,color:isFut?"#818CF8":getMonBal(selMon)>=0?"#34D399":"#F87171"}}>
-                        {isFut?fmtC(proj.projNet):fmtC(getMonBal(selMon))}
-                      </p>
-                      <p style={{fontSize:9,color:"#475569",marginTop:2}}>
-                        {isFut?"Saldo projetado do mês":"Saldo do mês"}
-                      </p>
-                    </div>
-                    <button onClick={()=>{setEditBM(selMon);setTmpBal(String(isFut?proj.projNet:getMonBal(selMon)));setModal("balAdj");}} style={{background:"none",border:"1px dashed #2A3A55",color:"#475569",borderRadius:8,padding:"3px 8px",fontSize:9,cursor:"pointer",fontWeight:700,flexShrink:0,marginLeft:8}}>✏️</button>
-                  </div>
-
-                  {/* Linha 1: receitas / despesas / a pagar */}
-                  <div style={{display:"flex",gap:5,marginBottom:isFut?8:0}}>
-                    {(isFut
-                      ? [[T.income,proj.projIncome,"#818CF8"],[T.expenses,proj.projExpense,"#A78BFA"],[T.toPay,totPend,"#F59E0B"]]
-                      : [[T.income,income,"#34D399"],[T.expenses,expenses,"#F87171"],[T.toPay,totPend,"#F59E0B"]]
-                    ).map(([l,v,c])=>(
-                      <div key={l} style={{flex:1,background:"#080C1895",borderRadius:10,padding:"7px 7px"}}>
-                        <p style={{fontSize:8,color:"#475569",marginBottom:2,fontWeight:700,letterSpacing:.3}}>{l}</p>
-                        <p className="mono" style={{fontSize:11,fontWeight:700,color:c}}>{fmtC(v)}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Bloco extra só para projeção */}
-                  {isFut&&proj&&(()=>{
-                    const savColor=proj.savingsRate>=20?"#34D399":proj.savingsRate>=0?"#F59E0B":"#F87171";
-                    return(
-                      <div style={{borderTop:"1px solid #6366F120",paddingTop:8,display:"flex",flexDirection:"column",gap:7}}>
-
-                        {/* Patrimônio projetado */}
-                        <div style={{background:"#6366F112",border:"1px solid #6366F130",borderRadius:12,padding:"9px 11px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                          <div>
-                            <p style={{fontSize:9,color:"#818CF8",fontWeight:700,letterSpacing:.5,marginBottom:2}}>PATRIMÔNIO PROJETADO</p>
-                            <p className="mono" style={{fontSize:16,fontWeight:800,color:proj.projAssets>=totAssets?"#34D399":"#F87171"}}>{fmtC(proj.projAssets)}</p>
-                          </div>
-                          <div style={{textAlign:"right"}}>
-                            <p style={{fontSize:9,color:"#475569",fontWeight:700,marginBottom:2}}>vs. hoje</p>
-                            <p className="mono" style={{fontSize:12,fontWeight:700,color:proj.projAssets>=totAssets?"#34D399":"#F87171"}}>{proj.projAssets>=totAssets?"+":""}{fmtC(round2(proj.projAssets-totAssets))}</p>
-                          </div>
-                        </div>
-
-                        {/* Acumulado do ano + taxa de poupança */}
-                        <div style={{display:"flex",gap:5}}>
-                          <div style={{flex:1,background:"#080C1895",borderRadius:10,padding:"7px 8px"}}>
-                            <p style={{fontSize:8,color:"#475569",fontWeight:700,marginBottom:2,letterSpacing:.3}}>RECEITAS NO ANO</p>
-                            <p className="mono" style={{fontSize:11,fontWeight:700,color:"#818CF8"}}>{fmtC(proj.cumProjIncome)}</p>
-                            <p style={{fontSize:8,color:"#374151",marginTop:1}}>real+proj</p>
-                          </div>
-                          <div style={{flex:1,background:"#080C1895",borderRadius:10,padding:"7px 8px"}}>
-                            <p style={{fontSize:8,color:"#475569",fontWeight:700,marginBottom:2,letterSpacing:.3}}>DESPESAS NO ANO</p>
-                            <p className="mono" style={{fontSize:11,fontWeight:700,color:"#A78BFA"}}>{fmtC(proj.cumProjExpense)}</p>
-                            <p style={{fontSize:8,color:"#374151",marginTop:1}}>real+proj</p>
-                          </div>
-                          <div style={{flex:1,background:"#080C1895",borderRadius:10,padding:"7px 8px"}}>
-                            <p style={{fontSize:8,color:"#475569",fontWeight:700,marginBottom:2,letterSpacing:.3}}>POUPANÇA MÊS</p>
-                            <p className="mono" style={{fontSize:11,fontWeight:700,color:savColor}}>{proj.savingsRate}%</p>
-                            <p style={{fontSize:8,color:"#374151",marginTop:1}}>da receita</p>
-                          </div>
-                        </div>
-
-                        {/* Barra de progresso poupança */}
-                        <div>
-                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                            <p style={{fontSize:8,color:"#475569",fontWeight:700}}>META DE POUPANÇA</p>
-                            <p style={{fontSize:8,color:savColor,fontWeight:800}}>{proj.savingsRate>=20?"✓ Ótimo":proj.savingsRate>=10?"→ Razoável":"↓ Abaixo"}</p>
-                          </div>
-                          <div style={{height:5,background:"#111827",borderRadius:3,overflow:"hidden"}}>
-                            <div style={{height:"100%",width:`${Math.min(Math.max(proj.savingsRate,0),100)}%`,background:`linear-gradient(90deg,${savColor},${savColor}88)`,borderRadius:3,transition:"width .6s"}}/>
-                          </div>
-                          <p style={{fontSize:8,color:"#374151",marginTop:2}}>Recomendado: poupar ≥ 20% da receita</p>
-                        </div>
-
-                      </div>
-                    );
-                  })()}
-                </div>
-              );
-            })()}
-
-            {/* ── CONTAS & CARTÕES ── */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
-              <h3 style={{fontSize:13,fontWeight:800,letterSpacing:.3}}>{T.accounts}</h3>
-              <button onClick={()=>setModal("addAcc")} style={{background:"#6366F115",border:"1px solid #6366F130",color:"#818CF8",borderRadius:9,padding:"3px 10px",fontSize:10,cursor:"pointer",fontWeight:700}}>{T.newAccount}</button>
-            </div>
-            <div style={{display:"flex",gap:7,overflowX:"auto",paddingBottom:6,marginBottom:12}}>
-              {accs.map(a=>(
-                <div key={a.id} onClick={()=>openAccAdjust(a.id)} style={{minWidth:130,background:"#0D1526",border:`1px solid ${a.color}35`,borderRadius:16,padding:"11px 12px",flexShrink:0,position:"relative",overflow:"hidden",cursor:"pointer"}}>
-                  <div style={{position:"absolute",top:-12,right:-12,width:52,height:52,borderRadius:"50%",background:`radial-gradient(circle,${a.color}20,transparent)`,pointerEvents:"none"}}/>
-                  <div style={{fontSize:18,marginBottom:4}}>{a.icon}</div>
-                  <p style={{fontSize:10,color:"#64748B",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name}</p>
-                  <p className="mono" style={{fontSize:14,fontWeight:700,marginTop:2,color:getAccBal(a.id)>=0?a.color:"#F87171"}}>{fmtC(getAccBal(a.id))}</p>
-                  <span style={{fontSize:9,color:"#2E3D55",fontWeight:700}}>{typeLabel(a.type).replace(/^[^\s]+\s/,"")}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* ── HISTÓRICO MENSAL ── */}
-            <div style={{background:"#0D1526",border:"1px solid #1A2640",borderRadius:20,padding:"14px 14px 8px",marginBottom:11,width:"100%",boxSizing:"border-box"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:showHist?10:4}}>
-                <div style={{display:"flex",alignItems:"center",gap:7}}>
-                  <h3 style={{fontSize:13,fontWeight:800,letterSpacing:.3}}>{T.history}</h3>
-                  {showHist&&(
-                    <div style={{display:"flex",alignItems:"center",gap:2}}>
-                      <button onClick={()=>setSelYear(y=>y-1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:6,width:22,height:22,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
-                      <span style={{fontSize:11,fontWeight:800,color:"#818CF8",minWidth:32,textAlign:"center"}}>{selYear}</span>
-                      <button onClick={()=>setSelYear(y=>y+1)} style={{background:"#111827",border:"1px solid #1A2640",color:"#64748B",borderRadius:6,width:22,height:22,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
-                    </div>
-                  )}
-                </div>
-                <button onClick={()=>setShowHist(p=>!p)} style={{background:"none",border:"none",color:"#475569",fontSize:11,cursor:"pointer",fontWeight:700}}>{showHist?T.hide:T.show}</button>
-              </div>
-              {showHist&&(()=>{
-                const mx=Math.max(...histMons.map(m=>Math.abs(m.balance)),1);
-                // Siglas de 1 char para o eixo X
-                const sig=["J","F","M","A","M","J","J","A","S","O","N","D"];
-                return(
-                  <div style={{width:"100%"}}>
-                    {/* Gráfico: 12 barras, sem labels compridos */}
-                    <div style={{display:"flex",gap:3,alignItems:"flex-end",height:60,width:"100%",marginBottom:6}}>
-                      {histMons.map((m,i)=>(
-                        <div key={m.ym} onClick={()=>setSelMon(m.ym)} title={m.label}
-                          style={{flex:1,height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",cursor:"pointer",gap:2}}>
-                          <div style={{
-                            width:"100%",
-                            height:`${Math.max(Math.abs(m.balance)/mx*100,6)}%`,
-                            borderRadius:"2px 2px 0 0",
-                            transition:"height .4s",
-                            opacity:m.ym===selMon?1:.45,
-                            background:m.isFuture?"linear-gradient(180deg,#6366F1,#4338CA)":`linear-gradient(180deg,${m.balance>=0?"#34D399":"#F87171"},${m.balance>=0?"#059669":"#DC2626"})`,
-                            outline:m.ym===selMon?"2px solid #6366F190":"none",
-                            outlineOffset:1,
-                            boxSizing:"border-box"
-                          }}/>
-                          <span style={{fontSize:8,color:m.ym===selMon?"#818CF8":m.isFuture?"#6366F160":"#374151",fontWeight:m.ym===selMon?800:600,lineHeight:1}}>{sig[i]}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Lista compacta */}
-                    {histMons.map(m=>(
-                      <div key={m.ym} onClick={()=>setSelMon(m.ym)}
-                        style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderTop:"1px solid #111827",cursor:"pointer",opacity:m.isFuture?.7:1}}>
-                        <div style={{display:"flex",gap:5,alignItems:"center",minWidth:0,flex:1,overflow:"hidden"}}>
-                          <div style={{width:3,height:13,borderRadius:2,flexShrink:0,background:m.ym===selMon?"#6366F1":m.isFuture?"#6366F135":"#1A2640"}}/>
-                          <span style={{fontSize:12,fontWeight:m.ym===selMon?800:600,color:m.ym===selMon?"#E8EDF5":m.isFuture?"#6366F190":"#64748B",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{m.label}</span>
-                          {m.isFuture&&<span style={{fontSize:8,color:"#6366F180",flexShrink:0}}>▷</span>}
-                          {m.adjusted&&<span style={{fontSize:8,color:"#F59E0B",flexShrink:0}}>✏</span>}
-                        </div>
-                        <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0,marginLeft:8}}>
-                          <span className="mono" style={{fontSize:12,fontWeight:700,color:m.isFuture?"#818CF8":m.balance>=0?"#34D399":"#F87171"}}>{fmtC(m.balance)}</span>
-                          <button onClick={e=>{e.stopPropagation();setEditBM(m.ym);setTmpBal(String(m.balance));setModal("balAdj");}} style={{background:"#111827",border:"none",color:"#475569",borderRadius:5,padding:"2px 5px",fontSize:10,cursor:"pointer",flexShrink:0,lineHeight:1}}>✏️</button>
-                          {m.adjusted&&<button onClick={e=>{e.stopPropagation();rmBal(m.ym);}} style={{background:"#111827",border:"none",color:"#EF4444",borderRadius:5,padding:"2px 5px",fontSize:10,cursor:"pointer",flexShrink:0,lineHeight:1}}>↺</button>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* ── RECORRENTES PENDENTES ── */}
-            {(()=>{
-              const recs=txs.filter(t=>t.recurrent&&t.status==="pending");
-              if(!recs.length)return null;
-              return(
-                <div className="card" style={{marginBottom:4}}>
-                  <h3 style={{fontSize:13,fontWeight:800,marginBottom:10,letterSpacing:.3}}>{T.recurringPending}</h3>
-                  {recs.map(t=>{
-                    const acc=getTxAccountMeta(t);
-                    const cat=getCatById(allCats,t.cat);
-                    return(
-                      <div key={t.id} style={{display:"flex",gap:9,alignItems:"center",padding:"8px 0",borderBottom:"1px solid #0D1526"}}>
-                        <div style={{width:34,height:34,borderRadius:10,background:cat.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{cat.icon}</div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <p style={{fontSize:13,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}</p>
-                          <p style={{fontSize:10,color:"#64748B"}}>🔁 {t.recurrence==="monthly"?T.monthly:t.recurrence==="weekly"?T.weekly:T.yearly}{acc?` · ${acc.icon} ${acc.name}`:""}</p>
-                        </div>
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          <p className="mono" style={{fontSize:13,fontWeight:700,color:"#F87171"}}>{fmtC(t.amount)}</p>
-                          <button onClick={()=>markPaid(t.id)} style={{background:"#34D39915",border:"1px solid #34D39940",color:"#34D399",borderRadius:7,padding:"2px 7px",fontSize:9,cursor:"pointer",fontWeight:700,marginTop:3}}>{T.payBtn}</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-
-          </div>
-        )}
-
-        {/* ═══ TRANSACTIONS ═══════════════════════════ */}
-        {tab==="transactions"&&(
-          <div className="fi">
-            <h2 style={{fontSize:19,fontWeight:800,padding:"12px 0 10px"}}>{T.transactions}</h2>
-            <div style={{display:"flex",flexDirection:"column",gap:7,marginBottom:11}}>
-              <div style={{marginBottom:2}}>
-                {/* Year selector */}
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                  <button onClick={()=>{const y=selYear-1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"#0D1526",border:"1px solid #1A2640",color:"#94A3B8",borderRadius:9,width:28,height:28,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}>‹</button>
-                  <div style={{flex:1,textAlign:"center",fontSize:13,fontWeight:800,color:"#818CF8",letterSpacing:1}}>{selYear}</div>
-                  <button onClick={()=>{const y=selYear+1;setSelYear(y);setSelMon(`${y}-${selMon.slice(5,7)}`);}} style={{background:"#0D1526",border:"1px solid #1A2640",color:"#94A3B8",borderRadius:9,width:28,height:28,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,flexShrink:0}}>›</button>
-                </div>
-                {/* Month grid */}
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5}}>
-                  {ALL_MONTHS.map(ym=>{const isFut=ym>currentYM;const hasTx=txs.some(t=>t.date.startsWith(ym));return(<button key={ym} onClick={()=>setSelMon(ym)} style={{padding:"6px 4px",borderRadius:12,border:`1.5px ${isFut?"dashed":"solid"}`,borderColor:selMon===ym?"#6366F1":hasTx?"#2A3A55":"#1A2640",background:selMon===ym?"#6366F120":"transparent",color:selMon===ym?"#818CF8":hasTx?"#64748B":"#384455",fontSize:11,fontWeight:700,cursor:"pointer",textAlign:"center"}}>
-                    {MONTHS_BASE[parseInt(ym.split("-")[1])-1]}
-                    {hasTx&&selMon!==ym&&<span style={{display:"block",width:4,height:4,borderRadius:"50%",background:"#6366F180",margin:"2px auto 0"}}/>}
-                  </button>);})}
-                </div>
-              </div>
-              <div className="seg">
-                {[[T.all,"all"],[T.pending,"pending"],[T.paid,"paid"]].map(([l,v])=>(<button key={v} className={`seg-b ${fStatus===v?"on":"off"}`} onClick={()=>setFStatus(v)}>{l}</button>))}
-              </div>
-              <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2}}>
-                <button onClick={()=>setFAcc("all")} style={{padding:"3px 9px",borderRadius:20,border:"1.5px solid",whiteSpace:"nowrap",borderColor:fAcc==="all"?"#6366F1":"#1A2640",background:fAcc==="all"?"#6366F120":"transparent",color:fAcc==="all"?"#818CF8":"#475569",fontSize:9,fontWeight:700,cursor:"pointer"}}>{T.all2}</button>
-                {accs.map(a=>(<button key={a.id} onClick={()=>setFAcc(a.id)} style={{padding:"3px 9px",borderRadius:20,border:"1.5px solid",whiteSpace:"nowrap",borderColor:fAcc===a.id?a.color:"#1A2640",background:fAcc===a.id?a.color+"20":"transparent",color:fAcc===a.id?a.color:"#475569",fontSize:9,fontWeight:700,cursor:"pointer"}}>{a.icon} {a.name}</button>))}
-              </div>
-            </div>
-            {selMon>currentYM&&filtTx.length>0&&(
-              <div style={{background:"#6366F112",border:"1px dashed #6366F140",borderRadius:13,padding:"8px 13px",marginBottom:10,display:"flex",gap:8,alignItems:"center"}}>
-                <span style={{fontSize:16}}>▷</span>
-                <p style={{fontSize:11,color:"#818CF8",fontWeight:700}}>Projeção de recorrentes para {MONTHS_BASE[parseInt(selMon.split("-")[1])-1]}/{selMon.slice(2,4)}</p>
-              </div>
-            )}
-            {filtTx.length===0&&(<div style={{textAlign:"center",padding:"50px 0",color:"#475569"}}><div style={{fontSize:36,marginBottom:10}}>📭</div><p style={{fontWeight:700}}>{T.noTx}</p></div>)}
-            {filtTx.map(t=>{
-              const cat=getCatById(allCats,t.cat);
-              const acc=getTxAccountMeta(t);const d=t.status==="pending"?ddiff(t.dueDate):null;
-              const isTransfer=t.type==="transfer_in"||t.type==="transfer_out";
-              const isProj=!!t._isProjection;
-              return(<div key={t.id} onClick={()=>{if(!isProj){setDetTx(t);setModal("txDet");}}} style={{background:isProj?"#0D152A":"#0D1526",borderRadius:16,padding:12,marginBottom:7,display:"flex",gap:9,alignItems:"center",cursor:isProj?"default":"pointer",border:"1px solid",borderColor:isProj?"#6366F130":t.status==="pending"&&d!==null&&d<0?"#EF444435":"#1A2640",opacity:isProj?0.8:1}}>
-                <div style={{width:40,height:40,borderRadius:12,background:cat.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{cat.icon}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <p style={{fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.desc}{t.recurrent&&<span style={{marginLeft:4,fontSize:10,color:"#64748B"}}>🔁</span>}{isTransfer&&<span style={{marginLeft:4,fontSize:10,color:"#87CEEB"}}>🔄</span>}</p>
-                  <div style={{display:"flex",gap:5,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
-                    <span style={{fontSize:9,color:"#475569"}}>{new Date(t.date+"T12:00:00").toLocaleDateString()}</span>
-                    {acc&&<span style={{fontSize:9,color:acc.color,fontWeight:700}}>{acc.icon}</span>}
-                    {isProj
-                      ? <span className="pill" style={{background:"#6366F118",color:"#818CF8",border:"1px solid #6366F130"}}>▷ projeção</span>
-                      : <span className="pill" style={{background:t.status==="paid"?"#34D39918":"#F59E0B18",color:t.status==="paid"?"#34D399":"#F59E0B",border:`1px solid ${t.status==="paid"?"#34D39940":"#F59E0B40"}`}}>{t.status==="paid"?T.paidL:T.paying}</span>
-                    }
-                    {d!==null&&d<0&&!isProj&&<span className="pill" style={{background:"#EF444418",color:"#F87171",border:"1px solid #EF444440"}}>{T.overdueLbl}</span>}
-                  </div>
-                </div>
-                <p className="mono" style={{fontSize:14,fontWeight:700,flexShrink:0,color:isProj?"#818CF8":t.type==="income"||t.type==="transfer_in"?"#34D399":t.status==="pending"?"#F59E0B":"#F87171"}}>{t.type==="income"||t.type==="transfer_in"?"+":"-"}{fmtC(t.amount)}</p>
-              </div>);
-            })}
-          </div>
-        )}
-
-        {/* ═══ ALERTS ══════════════════════════════════ */}
-        {tab==="alerts"&&(
-          <div className="fi">
-            <h2 style={{fontSize:19,fontWeight:800,padding:"12px 0 10px"}}>{T.alertsTitle}</h2>
-            {overdue.length===0&&dueSoon.length===0&&pending.length===0?(<div style={{textAlign:"center",padding:"55px 0",color:"#475569"}}><div style={{fontSize:46,marginBottom:12}}>🎉</div><p style={{fontSize:16,fontWeight:700}}>{T.allGood}</p><p style={{fontSize:12,marginTop:5}}>{T.noPending}</p></div>):(
-              <>{overdue.length>0&&<Section title={T.overdue} color="#EF4444" items={overdue} accs={accs} onPay={markPaid} T={T} fmtC={fmtC} cats={allCats} lang={userCfg.lang}/>}
-                {dueSoon.length>0&&<Section title={T.dueSoon} color="#F59E0B" items={dueSoon} accs={accs} onPay={markPaid} T={T} fmtC={fmtC} cats={allCats} lang={userCfg.lang}/>}
-                {pending.filter(t=>ddiff(t.dueDate)>3).length>0&&<Section title={T.upcoming} color="#64748B" items={pending.filter(t=>ddiff(t.dueDate)>3)} accs={accs} onPay={markPaid} T={T} fmtC={fmtC} cats={allCats} lang={userCfg.lang}/>}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* ═══ SETTINGS ════════════════════════════════ */}
-        {tab==="settings"&&(
-          <div className="fi">
-            <h2 style={{fontSize:19,fontWeight:800,padding:"12px 0 12px"}}>{T.settings2}</h2>
-
-            {/* BACKUP */}
-            <div className="card" style={{marginBottom:10}}>
-              <p className="sh">{T.backup}</p>
-              <SettingRow icon="☁️" label={T.status} note={bkpCfg.driveConnected?T.connected:T.disconnected}
-                right={!bkpCfg.driveConnected&&<button onClick={connectDrive} style={{background:"#6366F120",border:"1px solid #6366F140",color:"#818CF8",borderRadius:10,padding:"6px 12px",fontSize:11,cursor:"pointer",fontWeight:700}}>{T.connect}</button>}/>
-              <div style={{marginBottom:10,marginTop:8}}><label>{T.frequency}</label><select value={bkpCfg.interval} onChange={e=>setBkp(p=>({...p,interval:e.target.value}))}>{BKP_IDS.map((id,i)=><option key={id} value={id}>{(BKP_LABELS[userCfg.lang]||BKP_LABELS.pt)[i]}</option>)}</select></div>
-              {bkpCfg.lastBackup&&<p style={{fontSize:11,color:"#475569",marginBottom:10}}>{T.lastBackup}: {new Date(bkpCfg.lastBackup).toLocaleString()}</p>}
-              <button className="btn" onClick={doBackupDownload} style={{marginBottom:8}}>{T.exportNow}</button>
-            </div>
-
-            {/* RESTORE */}
-            <div className="card" style={{marginBottom:10}}>
-              <p className="sh">{T.restore}</p>
-              <button className="btn2" style={{width:"100%",textAlign:"center"}} onClick={triggerRestore}>{T.restoreBtn}</button>
-            </div>
-
-            {/* CATEGORIES */}
-            <div className="card" style={{marginBottom:10}}>
-              <p className="sh">{T.catSect}</p>
-              {/* Custom cats */}
-              {(customCats||[]).length===0&&<p style={{fontSize:11,color:"#475569",marginBottom:10}}>Nenhuma categoria personalizada. Use as padrões ou crie novas.</p>}
-              {(customCats||[]).map(cat=>(
-                <div key={cat.id} style={{display:"flex",gap:8,alignItems:"center",padding:"8px 0",borderBottom:"1px solid #111827"}}>
-                  <div style={{width:34,height:34,borderRadius:10,background:cat.color+"25",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{cat.icon}</div>
-                  <div style={{flex:1}}>
-                    {catEditId===cat.id?(
-                      <div style={{display:"flex",gap:5}}>
-                        <input value={catEditName} onChange={e=>setCatEditName(e.target.value)} style={{fontSize:12,padding:"4px 8px"}} onKeyDown={e=>{if(e.key==="Enter")renameCat(cat.id);if(e.key==="Escape"){setCatEditId(null);setCatEditName("");}}}/>
-                        <button onClick={()=>renameCat(cat.id)} style={{background:"#34D39920",border:"1px solid #34D39940",color:"#34D399",borderRadius:8,padding:"4px 8px",fontSize:11,cursor:"pointer",fontWeight:700,flexShrink:0}}>✓</button>
-                        <button onClick={()=>{setCatEditId(null);setCatEditName("");}} style={{background:"#1A2640",border:"none",color:"#64748B",borderRadius:8,padding:"4px 8px",fontSize:11,cursor:"pointer",flexShrink:0}}>✕</button>
-                      </div>
-                    ):(
-                      <div>
-                        <p style={{fontSize:13,fontWeight:700}}>{typeof cat.label==="object"?getCatLabel(cat,userCfg.lang):cat.label}</p>
-                        <p style={{fontSize:10,color:"#64748B"}}>{cat.txType==="both"?T.catBoth:cat.txType==="income"?T.catIncome:T.catExpense} · {T.catCustom}</p>
-                      </div>
-                    )}
-                  </div>
-                  {catEditId!==cat.id&&<div style={{display:"flex",gap:4,flexShrink:0}}>
-                    <button onClick={()=>{setCatEditId(cat.id);setCatEditName(typeof cat.label==="object"?getCatLabel(cat,userCfg.lang):cat.label);}} style={{background:"#1A2640",border:"none",color:"#94A3B8",borderRadius:8,padding:"4px 8px",fontSize:10,cursor:"pointer",fontWeight:700}}>✏️</button>
-                    <button onClick={()=>deleteCat(cat.id)} style={{background:"#EF444415",border:"1px solid #EF444430",color:"#EF4444",borderRadius:8,padding:"4px 8px",fontSize:10,cursor:"pointer",fontWeight:700}}>🗑</button>
-                  </div>}
-                </div>
-              ))}
-              {/* Default cats preview */}
-              <p style={{fontSize:11,color:"#475569",marginTop:10,marginBottom:8}}>{T.catBuiltin}:</p>
-              <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:12}}>
-                {DEFAULT_CATS.map(cat=>(<span key={cat.id} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 9px",borderRadius:20,background:cat.color+"18",border:`1px solid ${cat.color}40`,fontSize:11,fontWeight:700,color:cat.color}}>{cat.icon} {getCatLabel(cat,userCfg.lang)}</span>))}
-              </div>
-              <button onClick={()=>{setCatForm({name:"",icon:"📦",color:"#F0A500",txType:"both"});setModal("addCat");}} className="btn2" style={{width:"100%",textAlign:"center"}}>
-                {T.catNew}
-              </button>
-            </div>
-
-            {/* ACCOUNTS */}
-            <div className="card" style={{marginBottom:10}}>
-              <p className="sh">{T.accountsSect}</p>
-              {accs.map(a=>(
-                <div key={a.id} style={{display:"flex",gap:9,alignItems:"center",padding:"8px 0",borderBottom:"1px solid #111827"}}>
-                  <div style={{width:34,height:34,borderRadius:10,background:a.color+"25",display:"flex",alignItems:"center",justifyContent:"center",fontSize:17}}>{a.icon}</div>
-                  <div style={{flex:1}}>
-                    <p style={{fontSize:13,fontWeight:700}}>{a.name}</p>
-                    <p style={{fontSize:10,color:"#64748B"}}>{typeLabel(a.type)}</p>
-                  </div>
-                  <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"stretch",gap:4,minWidth:92}}>
-                    <p className="mono" style={{fontSize:12,fontWeight:700,color:getAccBal(a.id)>=0?a.color:"#F87171"}}>{fmtC(getAccBal(a.id))}</p>
-                    <button type="button" onClick={(e)=>{e.stopPropagation();setAccs(p=>p.map(x=>x.id===a.id?{...x,includeInTotal:!x.includeInTotal}:x));}} style={{background:a.includeInTotal?"#34D39920":"#1A2640",border:`1px solid ${a.includeInTotal?"#34D39940":"#2A3A55"}`,color:a.includeInTotal?"#34D399":"#475569",borderRadius:8,padding:"3px 7px",fontSize:9,cursor:"pointer",fontWeight:700,width:"100%"}}>{a.includeInTotal?"∑ ON":"∑ OFF"}</button>
-                    <button type="button" onClick={(e)=>{e.stopPropagation();openAccAdjust(a.id);}} style={{background:"#1A2640",border:"1px solid #2A3A55",color:"#94A3B8",borderRadius:8,padding:"3px 7px",fontSize:9,cursor:"pointer",fontWeight:700,width:"100%",touchAction:"manipulation"}}>{XT.manageAccountBtn}</button>
-                  </div>
-                </div>
-              ))}
-              <button onClick={()=>setModal("addAcc")} className="btn2" style={{marginTop:10,width:"100%",textAlign:"center"}}>+ {T.newAcc}</button>
-            </div>
-
-            {/* HIST */}
-            <div className="card" style={{marginBottom:10}}>
-              <p className="sh">{T.histSect}</p>
-              {histMons.map(m=>(<div key={m.ym} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #111827"}}><div><p style={{fontSize:13,fontWeight:700}}>{m.label}</p>{m.adjusted&&<span style={{fontSize:10,color:"#F59E0B"}}>{T.manual}</span>}</div><div style={{display:"flex",gap:5,alignItems:"center"}}><p className="mono" style={{fontSize:12,fontWeight:700,color:m.balance>=0?"#34D399":"#F87171"}}>{fmtC(m.balance)}</p><button onClick={()=>{setEditBM(m.ym);setTmpBal(String(m.balance));setModal("balAdj");}} style={{background:"#1A2640",border:"none",color:"#64748B",borderRadius:7,padding:"3px 7px",fontSize:11,cursor:"pointer"}}>✏️</button>{m.adjusted&&<button onClick={()=>rmBal(m.ym)} style={{background:"#1A2640",border:"none",color:"#EF4444",borderRadius:7,padding:"3px 7px",fontSize:11,cursor:"pointer"}}>↺</button>}</div></div>))}
-            </div>
-
-            {deferPmt&&<div className="card"><p className="sh">{T.installSect}</p><p style={{fontSize:12,color:"#94A3B8",marginBottom:10}}>{T.installDesc}</p><button className="btn" onClick={()=>{deferPmt.prompt();deferPmt.userChoice.then(()=>setDeferPmt(null));}} style={{background:"linear-gradient(135deg,#10B981,#059669)"}}>{T.installBtn}</button></div>}
-          </div>
-        )}
-
-        {/* ═══ USER ════════════════════════════════════ */}
-        {tab==="user"&&(
-          <div className="fi">
-            <div style={{display:"flex",alignItems:"center",gap:12,padding:"14px 0 16px"}}>
-              <div style={{width:54,height:54,borderRadius:18,background:"linear-gradient(135deg,#6366F1,#4F46E5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>👤</div>
-              <div><p style={{fontSize:18,fontWeight:800}}>{T.userTitle}</p>{userCfg.supporter&&<span style={{fontSize:11,fontWeight:700,color:"#EC4899"}}>{T.supporterBadge}</span>}</div>
-            </div>
-            <div className="card" style={{marginBottom:10}}>
-              <p className="sh">{T.langSect}</p>
-              <div style={{display:"flex",flexWrap:"wrap",gap:7}}>
-                {Object.entries(I18N).map(([k,v])=>(<button key={k} onClick={()=>setUser(p=>({...p,lang:k}))} style={{padding:"7px 12px",borderRadius:20,border:"1.5px solid",borderColor:userCfg.lang===k?"#6366F1":"#1A2640",background:userCfg.lang===k?"#6366F120":"transparent",color:userCfg.lang===k?"#818CF8":"#64748B",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",gap:5,alignItems:"center"}}><span>{v.flag}</span><span>{v.lang}</span></button>))}
-              </div>
-            </div>
-            <div className="card" style={{marginBottom:10}}>
-              <p className="sh">{T.currSect}</p>
-              <select value={userCfg.currency} onChange={e=>setUser(p=>({...p,currency:e.target.value}))}>{CURRENCIES.map(c=><option key={c.id} value={c.id}>{c.flag} {c.label}</option>)}</select>
-            </div>
-            <div className="card" style={{marginBottom:10}}>
-              <p className="sh">{T.secSect}</p>
-              <SettingRow icon="🔐" label={T.pinEnable} right={<Toggle val={userCfg.pinEnabled} onChange={v=>{if(v){setShowPin(true);setPinStep(1);setPin1("");setPin2("");}else disablePin();}}/>}/>
-              {userCfg.pinEnabled&&<button onClick={()=>{setShowPin(true);setPinStep(1);setPin1("");setPin2("");}} style={{marginTop:8,background:"#1A2640",border:"none",color:"#64748B",borderRadius:10,padding:"7px 14px",fontSize:11,cursor:"pointer",fontWeight:700}}>🔑 {T.pinChange}</button>}
-              <SettingRow icon="👆" label={T.biometric} note={T.biometricNote} right={<Toggle val={userCfg.biometric} onChange={v=>{if(v&&window.PublicKeyCredential){setUser(p=>({...p,biometric:true}));toast_("Biometria ativada ✓");}else if(v){toast_("WebAuthn não suportado","#F59E0B");}else setUser(p=>({...p,biometric:false}));}}/>}/>
-            </div>
-            <div className="card" style={{marginBottom:10}}>
-              <p className="sh">{T.tipsSect}</p>
-              <SettingRow icon="💡" label={T.tipsEnable} note={T.tipsNote} right={<Toggle val={userCfg.tipsEnabled} onChange={v=>setUser(p=>({...p,tipsEnabled:v}))}/>}/>
-              <button onClick={()=>setShowTip(true)} style={{marginTop:8,background:"#6366F120",border:"1px solid #6366F140",color:"#818CF8",borderRadius:10,padding:"7px 14px",fontSize:11,cursor:"pointer",fontWeight:700}}>💡 Ver dica agora</button>
-            </div>
-            <div className="card" style={{marginBottom:14,background:"linear-gradient(135deg,#0D1930,#0A1020)",border:"1px solid #6366F130"}}>
-              <div style={{textAlign:"center",padding:"8px 0 16px"}}>
-                <p style={{fontSize:20,marginBottom:6}}>💖</p>
-                <p style={{fontSize:16,fontWeight:800,color:"#E8EDF5",marginBottom:4}}>{T.donateTitle}</p>
-                <p style={{fontSize:12,color:"#818CF8",fontWeight:600,marginBottom:10}}>{T.donateSub}</p>
-                <p style={{fontSize:12,color:"#64748B",lineHeight:1.6}}>{T.donateDesc}</p>
-              </div>
-              <div style={{background:"#111827",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
-                <p style={{fontSize:11,fontWeight:800,color:"#EC4899",letterSpacing:.8,marginBottom:8}}>{T.whyTitle}</p>
-                {[T.why1,T.why2,T.why3,T.why4].map((w,i)=>(<p key={i} style={{fontSize:12,color:"#94A3B8",marginBottom:4}}>✓ {w}</p>))}
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:9}}>
-                {[{id:"one_time_20_usd",icon:"☕",label:T.coffee,price:T.coffeePrice,desc:T.coffeeDesc,popular:false,color:"#F59E0B"},{id:"monthly_1_usd",icon:"🔁",label:T.monthly2,price:T.monthlyPrice,desc:T.monthlyDesc,popular:true,color:"#6366F1"},{id:"annual_10_usd",icon:"⭐",label:T.annual,price:T.annualPrice,desc:T.annualDesc,popular:false,color:"#10B981"}].map(plan=>(<div key={plan.id} style={{background:plan.popular?"#6366F115":"#111827",border:`1.5px solid ${plan.popular?"#6366F155":"#1F2D45"}`,borderRadius:16,padding:"13px 14px",position:"relative",overflow:"hidden"}}>{plan.popular&&<div style={{position:"absolute",top:0,right:0,background:"linear-gradient(135deg,#6366F1,#4F46E5)",fontSize:9,fontWeight:800,color:"#fff",padding:"4px 10px",borderRadius:"0 14px 0 10px"}}>{T.mostPopular}</div>}<div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}><span style={{fontSize:22,flexShrink:0}}>{plan.icon}</span><div style={{flex:1}}><p style={{fontSize:14,fontWeight:800,color:"#E8EDF5"}}>{plan.label}</p><p style={{fontSize:16,fontWeight:800,color:plan.color,marginTop:1,fontFamily:"'JetBrains Mono',monospace"}}>{plan.price}</p><p style={{fontSize:11,color:"#64748B",marginTop:3}}>{plan.desc}</p></div></div><button onClick={()=>donate(plan.id)} style={{width:"100%",background:`linear-gradient(135deg,${plan.color},${plan.color}CC)`,border:`1px solid ${plan.color}50`,color:"#fff",borderRadius:12,padding:"10px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{T.supportBtn}</button></div>))}
-              </div>
-              <div style={{textAlign:"center",padding:"14px 0 4px"}}>
-                <p style={{fontSize:12,fontWeight:800,color:"#E8EDF5",marginBottom:4}}>{T.thankTitle}</p>
-                <p style={{fontSize:11,color:"#64748B",lineHeight:1.6}}>{T.thankDesc}</p>
-              </div>
-            </div>
-            {showPin&&(
-              <div style={{position:"fixed",inset:0,background:"#000D",zIndex:300,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:24}}>
-                <p style={{fontSize:18,fontWeight:800,color:"#E8EDF5"}}>{T.pinTitle}</p>
-                <p style={{fontSize:13,color:"#64748B"}}>{pinStep===1?T.pinEnterNew:T.pinConfirm}</p>
-                <div style={{display:"flex",gap:12}}>{[0,1,2,3].map(i=>{const cur=pinStep===1?pin1:pin2;return(<div key={i} style={{width:16,height:16,borderRadius:"50%",background:cur.length>i?"#6366F1":"#1F2D45",transition:"background .2s"}}/>);})}</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,68px)",gap:10}}>{[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map((d,i)=>(<button key={i} onClick={()=>d===""?null:d==="⌫"?delPinKey():handlePinKey(String(d))} style={{width:68,height:68,borderRadius:16,fontSize:22,fontWeight:700,background:d===""?"transparent":"#111827",border:d===""?"none":"1px solid #1F2D45",color:d==="⌫"?"#EF4444":"#E8EDF5",cursor:d===""?"default":"pointer"}}>{d}</button>))}</div>
-                <button onClick={()=>{setShowPin(false);}} style={{background:"none",border:"none",color:"#64748B",fontSize:13,cursor:"pointer",fontWeight:700}}>Cancelar</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* FAB */}
-      <button onClick={()=>{setForm(blankF);setModal("addTx");}} style={{position:"fixed",bottom:80,right:"calc(50% - 215px + 14px)",width:51,height:51,borderRadius:"50%",background:"linear-gradient(135deg,#6366F1,#4F46E5)",border:"none",color:"white",fontSize:26,cursor:"pointer",boxShadow:"0 8px 24px #6366F155",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50}}>+</button>
-
-      {/* BOTTOM NAV */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:"#080C18",borderTop:"1px solid #1A2640",display:"flex",zIndex:40,paddingBottom:"max(env(safe-area-inset-bottom,0px),5px)"}}>
-        {[["home","🏠",T.home],["transactions","📋",T.extract],["alerts","🔔"+(overdue.length+dueSoon.length>0?" "+(overdue.length+dueSoon.length):""),T.alerts],["settings","⚙️",T.settings],["user","👤",T.user]].map(([id,icon,label])=>(<button key={id} className={`tab ${tab===id?"on":""}`} type="button" onClick={()=>switchTab(id)} style={{touchAction:"manipulation"}}><span style={{fontSize:19}}>{icon}</span><span style={{fontSize:8}}>{label}</span></button>))}
-      </div>
-
-      {/* ══════════ MODALS ══════════ */}
-
-      {/* ADD TX */}
-      {modal==="addTx"&&(
-        <Overlay onClose={()=>setModal(null)}>
-          <MH title={T.newTx} onClose={()=>setModal(null)}/>
-          {/* Type selector including Transfer */}
-          <div style={{display:"flex",gap:6,marginBottom:12}}>
-            {[[T.expenseBtn,"expense","#EF4444"],[T.incomeBtn,"income","#34D399"],[T.transferBtn,"transfer","#87CEEB"]].map(([l,v,c])=>(
-              <button key={v} onClick={()=>{if(v==="transfer"){if((accs||[]).length<2){toast_("Cadastre ao menos duas contas para transferir","#EF4444");return;} setModal("addTransfer");}else setForm(f=>({...f,type:v}));}} style={{flex:1,padding:"9px 4px",borderRadius:11,border:`1.5px solid ${form.type===v&&v!=="transfer"?c:"#1F2D45"}`,background:form.type===v&&v!=="transfer"?c+"22":"transparent",color:form.type===v&&v!=="transfer"?c:"#64748B",fontSize:11,fontWeight:700,cursor:"pointer"}}>{l}</button>
-            ))}
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:11}}>
-            <div><label>{T.description}</label><input placeholder={T.descPh} value={form.desc} onChange={e=>setForm(f=>({...f,desc:e.target.value}))}/></div>
-            <div style={{display:"flex",gap:8}}>
-              <div style={{flex:1}}><label>{form.installments?`VALOR TOTAL (${CURR.symbol})`:T.amount+` (${CURR.symbol})`}</label><input type="number" inputMode="decimal" placeholder="0,00" value={form.installments?(form.installmentTotal||""):(form.amount)} onChange={e=>form.installments?setForm(f=>({...f,installmentTotal:e.target.value,amount:round2((parseFloat(e.target.value)||0)/(f.installCount||2))})):setForm(f=>({...f,amount:e.target.value}))}/></div>
-              <div style={{flex:1}}><label>{T.account}</label><select value={form.accountId} onChange={e=>setForm(f=>({...f,accountId:e.target.value}))}>{accs.map(a=><option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}</select></div>
-            </div>
-            {form.installments&&form.installmentTotal&&parseFloat(form.installmentTotal)>0&&(
-              <div style={{background:"#111827",borderRadius:12,padding:"9px 13px",marginTop:-4}}>
-                <p style={{fontSize:10,color:"#64748B",marginBottom:4,fontWeight:700}}>PRÉVIA DAS PARCELAS</p>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <span style={{fontSize:12,color:"#94A3B8"}}>{form.installCount}x de</span>
-                  <span className="mono" style={{fontSize:16,fontWeight:800,color:"#F59E0B"}}>{fmtC(round2((parseFloat(form.installmentTotal)||0)/form.installCount))}</span>
-                </div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:3}}>
-                  <span style={{fontSize:11,color:"#475569"}}>Total</span>
-                  <span className="mono" style={{fontSize:12,color:"#64748B"}}>{fmtC(parseFloat(form.installmentTotal)||0)}</span>
-                </div>
-              </div>
-            )}
-            <div style={{display:"flex",gap:8}}>
-              <div style={{flex:1}}><label>{T.category}</label>
-                <select value={form.cat} onChange={e=>setForm(f=>({...f,cat:e.target.value}))}>
-                  {formCats.map(c=><option key={c.id} value={c.id}>{c.icon} {getCatLabel(c,userCfg.lang)}</option>)}
-                </select>
-              </div>
-              <div style={{flex:1}}><label>{T.statusL}</label><select value={form.status} onChange={e=>setForm(f=>({...f,status:e.target.value}))}><option value="pending">{T.paying}</option><option value="paid">{T.paidL}</option></select></div>
-            </div>
-            {form.status==="pending"&&<div><label>{T.dueDate}</label><input type="date" value={form.dueDate} onChange={e=>setForm(f=>({...f,dueDate:e.target.value}))}/></div>}
-            <div style={{background:"#111827",borderRadius:12,padding:11}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:form.recurrent?9:0}}>
-                <span style={{fontSize:12,fontWeight:700,color:"#94A3B8"}}>{T.recurrent}</span>
-                <Toggle val={form.recurrent} onChange={v=>setForm(f=>({...f,recurrent:v,installments:v?false:f.installments}))}/>
-              </div>
-              {form.recurrent&&<select value={form.recurrence} onChange={e=>setForm(f=>({...f,recurrence:e.target.value}))}><option value="weekly">{T.weekly}</option><option value="monthly">{T.monthly}</option><option value="yearly">{T.yearly}</option></select>}
-            </div>
-            {form.type==="expense"&&!form.recurrent&&(
-              <div style={{background:"#111827",borderRadius:12,padding:11}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:form.installments?9:0}}>
-                  <span style={{fontSize:12,fontWeight:700,color:"#94A3B8"}}>{T.installments}</span>
-                  <Toggle val={form.installments} onChange={v=>setForm(f=>({...f,installments:v,installmentTotal:"",amount:v?"":f.amount,recurrent:v?false:f.recurrent}))}/>
-                </div>
-                {form.installments&&<div><label>{T.installCount}</label><input type="number" inputMode="numeric" min={2} max={48} value={form.installCount} onChange={e=>{const n=parseInt(e.target.value)||2;setForm(f=>({...f,installCount:n,amount:f.installmentTotal?round2((parseFloat(f.installmentTotal)||0)/n):f.amount}));}}/></div>}
-              </div>
-            )}
-            <div style={{background:"#111827",borderRadius:12,padding:11}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:form.scheduled?9:0}}>
-                <span style={{fontSize:12,fontWeight:700,color:"#94A3B8"}}>{T.scheduled}</span>
-                <Toggle val={form.scheduled} onChange={v=>setForm(f=>({...f,scheduled:v}))}/>
-              </div>
-              {form.scheduled&&<input type="date" value={form.scheduledDate} onChange={e=>setForm(f=>({...f,scheduledDate:e.target.value,date:e.target.value}))}/>}
-            </div>
-            <button className="btn" onClick={addTx}>{form.installments?T.createParcels.replace("{n}",form.installCount):T.addTx}</button>
-          </div>
-        </Overlay>
-      )}
-
-      {/* ADD TRANSFER */}
-      {modal==="addTransfer"&&(
-        <Overlay onClose={()=>setModal(null)}>
-          <MH title={T.transferBtn} onClose={()=>setModal(null)}/>
-          <div style={{background:"#87CEEB18",border:"1px solid #87CEEB40",borderRadius:14,padding:"10px 14px",marginBottom:14,display:"flex",gap:8,alignItems:"center"}}>
-            <span style={{fontSize:22}}>🔄</span>
-            <p style={{fontSize:12,color:"#87CEEB",fontWeight:600,lineHeight:1.4}}>{T.transferSect}<br/><span style={{fontWeight:400,color:"#64748B",fontSize:11}}>Cria dois lançamentos: saída na origem e entrada no destino.</span></p>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:11}}>
-            <div><label>{T.description}</label><input placeholder="Ex: Reserva para investimento" value={trForm.desc} onChange={e=>setTrForm(f=>({...f,desc:e.target.value}))}/></div>
-            <div><label>{T.amount} ({CURR.symbol})</label><input type="number" inputMode="decimal" placeholder="0,00" value={trForm.amount} onChange={e=>setTrForm(f=>({...f,amount:e.target.value}))}/></div>
-            <div><label>{T.fromAccount}</label>
-              <select value={trForm.fromAccountId} onChange={e=>setTrForm(f=>({...f,fromAccountId:e.target.value}))}>
-                {accs.map(a=><option key={a.id} value={a.id}>{a.icon} {a.name} — {fmtC(getAccBal(a.id))}</option>)}
-              </select>
-            </div>
-            <div style={{display:"flex",justifyContent:"center",fontSize:22,margin:"-4px 0"}}>⬇️</div>
-            <div><label>{T.toAccount}</label>
-              <select value={trForm.toAccountId} onChange={e=>setTrForm(f=>({...f,toAccountId:e.target.value}))}>
-                {accs.map(a=><option key={a.id} value={a.id}>{a.icon} {a.name} — {fmtC(getAccBal(a.id))}</option>)}
-              </select>
-            </div>
-            {trForm.fromAccountId&&trForm.toAccountId&&trForm.fromAccountId===trForm.toAccountId&&(
-              <p style={{fontSize:11,color:"#EF4444",fontWeight:700,textAlign:"center"}}>⚠️ {T.sameAccountErr}</p>
-            )}
-            <div><label>{T.date}</label><input type="date" value={trForm.date} onChange={e=>setTrForm(f=>({...f,date:e.target.value}))}/></div>
-            <div><label>{T.statusL}</label><select value={trForm.status} onChange={e=>setTrForm(f=>({...f,status:e.target.value}))}><option value="paid">{T.paidL}</option><option value="pending">{T.paying}</option></select></div>
-            {trForm.amount&&parseFloat(trForm.amount)>0&&trForm.fromAccountId&&trForm.toAccountId&&trForm.fromAccountId!==trForm.toAccountId&&(
-              <div style={{background:"#111827",borderRadius:12,padding:"10px 14px"}}>
-                <p style={{fontSize:11,color:"#64748B",marginBottom:6,fontWeight:700}}>PRÉVIA</p>
-                <Row label={`💸 ${(accs.find(a=>a.id===trForm.fromAccountId)||{}).name||""}`} val={<span className="mono" style={{color:"#F87171"}}>-{fmtC(parseFloat(trForm.amount)||0)}</span>}/>
-                <Row label={`💰 ${(accs.find(a=>a.id===trForm.toAccountId)||{}).name||""}`} val={<span className="mono" style={{color:"#34D399"}}>+{fmtC(parseFloat(trForm.amount)||0)}</span>} border={false}/>
-              </div>
-            )}
-            <button className="btn" onClick={addTransfer} style={{background:"linear-gradient(135deg,#0EA5E9,#0284C7)"}}>{T.addTransfer}</button>
-          </div>
-        </Overlay>
-      )}
-
-      {/* ADD CATEGORY */}
-      {modal==="addCat"&&(
-        <Overlay onClose={()=>setModal(null)}>
-          <MH title={T.catNew} onClose={()=>setModal(null)}/>
-          <div style={{display:"flex",flexDirection:"column",gap:11}}>
-            <div><label>{T.catName}</label><input placeholder="Ex: Viagem" value={catForm.name} onChange={e=>setCatForm(f=>({...f,name:e.target.value}))}/></div>
-            <div>
-              <label>{T.catIcon}</label>
-              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:6}}>
-                {CAT_PRESET_ICONS.map(ic=>(<button key={ic} onClick={()=>setCatForm(f=>({...f,icon:ic}))} style={{width:38,height:38,borderRadius:10,fontSize:18,cursor:"pointer",background:catForm.icon===ic?"#6366F130":"#111827",border:`1.5px solid ${catForm.icon===ic?"#6366F1":"#1F2D45"}`}}>{ic}</button>))}
-              </div>
-              <input placeholder="Ou cole outro emoji..." value={catForm.icon} onChange={e=>setCatForm(f=>({...f,icon:e.target.value.slice(0,4)||"📦"}))} style={{fontSize:20}}/>
-            </div>
-            <div>
-              <label>{T.catColor}</label>
-              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                {CAT_PRESET_COLORS.map(c=>(<button key={c} onClick={()=>setCatForm(f=>({...f,color:c}))} style={{width:28,height:28,borderRadius:"50%",background:c,cursor:"pointer",border:`2.5px solid ${catForm.color===c?"#fff":"transparent"}`}}/>))}
-              </div>
-            </div>
-            <div>
-              <label>{T.catType}</label>
-              <div className="seg">
-                {[["both",T.catBoth],["income",T.catIncome],["expense",T.catExpense]].map(([v,l])=>(<button key={v} className={`seg-b ${catForm.txType===v?"on":"off"}`} onClick={()=>setCatForm(f=>({...f,txType:v}))}>{l}</button>))}
-              </div>
-            </div>
-            {/* Preview */}
-            <div style={{display:"flex",justifyContent:"center",padding:"8px 0"}}>
-              <span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"8px 18px",borderRadius:20,background:catForm.color+"22",border:`1.5px solid ${catForm.color}50`,fontSize:14,fontWeight:700,color:catForm.color}}>
-                {catForm.icon||"📦"} {catForm.name||"Prévia"}
-              </span>
-            </div>
-            <button className="btn" onClick={addCat}>{T.catAdd}</button>
-          </div>
-        </Overlay>
-      )}
-
-      {/* ADD ACCOUNT */}
-      {modal==="addAcc"&&(
-        <Overlay onClose={()=>setModal(null)}>
-          <MH title={T.newAcc} onClose={()=>setModal(null)}/>
-          <div style={{display:"flex",flexDirection:"column",gap:11}}>
-            <div><label>{T.accName}</label><input placeholder={T.accNamePh} value={aForm.name} onChange={e=>setAForm(f=>({...f,name:e.target.value}))}/></div>
-            <div><label>{T.accType}</label><select value={aForm.type} onChange={e=>setAForm(f=>({...f,type:e.target.value}))}><option value="checking">{T.checking}</option><option value="savings">{T.savings}</option><option value="credit">{T.credit}</option><option value="wallet">{XT.wallet}</option></select></div>
-            <div><label>{XT.openingBalance}</label><input type="number" inputMode="decimal" placeholder="0,00" value={aForm.openingBalance} onChange={e=>setAForm(f=>({...f,openingBalance:e.target.value}))}/></div>
-            <div><label>{T.icon}</label><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{ACC_ICONS.map(ic=>(<button key={ic} onClick={()=>setAForm(f=>({...f,icon:ic}))} style={{width:40,height:40,borderRadius:10,fontSize:20,cursor:"pointer",background:aForm.icon===ic?"#6366F130":"#111827",border:`1.5px solid ${aForm.icon===ic?"#6366F1":"#1F2D45"}`}}>{ic}</button>))}</div></div>
-            <div><label>{T.color}</label><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{ACC_COLORS.map(c=>(<button key={c} onClick={()=>setAForm(f=>({...f,color:c}))} style={{width:30,height:30,borderRadius:"50%",background:c,cursor:"pointer",border:`2.5px solid ${aForm.color===c?"#fff":"transparent"}`}}/>))}</div></div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#111827",borderRadius:12,padding:"10px 12px"}}><span style={{fontSize:12,fontWeight:700,color:"#94A3B8"}}>{T.includeTotal}</span><Toggle val={aForm.includeInTotal} onChange={v=>setAForm(f=>({...f,includeInTotal:v}))}/></div>
-            <button className="btn" onClick={addAcc}>{T.addAcc}</button>
-          </div>
-        </Overlay>
-      )}
-
-      {/* BACKUP MODAL */}
-      {modal==="backup"&&(
-        <Overlay onClose={()=>setModal(null)}>
-          <MH title={T.backupModal} onClose={()=>setModal(null)}/>
-          <div style={{textAlign:"center",padding:"8px 0 16px"}}><div style={{fontSize:50,marginBottom:8}}>☁️</div><p style={{fontSize:13,fontWeight:700,marginBottom:5}}>Backup</p><p style={{fontSize:12,color:"#64748B"}}>{bkpCfg.driveConnected?T.driveConnected:T.driveDisconn}</p></div>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <div><label>{T.frequency}</label><select value={bkpCfg.interval} onChange={e=>setBkp(p=>({...p,interval:e.target.value}))}>{BKP_IDS.map((id,i)=><option key={id} value={id}>{(BKP_LABELS[userCfg.lang]||BKP_LABELS.pt)[i]}</option>)}</select></div>
-            {bkpCfg.lastBackup&&<div style={{background:"#111827",borderRadius:12,padding:"9px 14px",textAlign:"center"}}><p style={{fontSize:10,color:"#64748B"}}>{T.lastBackup}</p><p style={{fontSize:12,fontWeight:700,marginTop:2}}>{new Date(bkpCfg.lastBackup).toLocaleString()}</p></div>}
-            <button className="btn" onClick={()=>{doBackupDownload();setModal(null);}}>{T.exportBackup}</button>
-            <p style={{fontSize:10,color:"#475569",textAlign:"center"}}>{T.backupNote}</p>
-          </div>
-        </Overlay>
-      )}
-
-      {/* RESTORE CONFIRM */}
-      {modal==="restoreConfirm"&&(
-        <Overlay onClose={()=>{setModal(null);setRestoreConfirm(null);}}>
-          <MH title={T.restore} onClose={()=>{setModal(null);setRestoreConfirm(null);}}/>
-          <div style={{textAlign:"center",padding:"10px 0 20px"}}><div style={{fontSize:46,marginBottom:10}}>⚠️</div><p style={{fontSize:15,fontWeight:800,color:"#F59E0B",marginBottom:8}}>{T.restoreWarn.split("⚠️ ")[1]||T.restoreWarn}</p>{restoreConfirm&&<p style={{fontSize:11,color:"#64748B"}}>{restoreConfirm.transactions?.length||0} transações · {restoreConfirm.accounts?.length||0} contas</p>}</div>
-          <div style={{display:"flex",gap:8}}><button className="btn2" style={{flex:1,textAlign:"center"}} onClick={()=>{setModal(null);setRestoreConfirm(null);}}>{T.restoreCancel}</button><button onClick={doRestore} style={{flex:2,background:"linear-gradient(135deg,#EF4444,#DC2626)",border:"none",color:"#fff",borderRadius:13,padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer"}}>{T.restoreConfirm}</button></div>
-        </Overlay>
-      )}
-
-      {/* BAL ADJ */}
-      {modal==="balAdj"&&(
-        <Overlay onClose={()=>setModal(null)}>
-          <MH title={T.adjustMonth} onClose={()=>setModal(null)}/>
-          <div style={{textAlign:"center",marginBottom:16}}><p style={{fontSize:24,marginBottom:5}}>✏️</p><p style={{fontSize:15,fontWeight:700}}>{editBM&&MONTHS_BASE[parseInt(editBM.split("-")[1])-1]+"/"+editBM?.slice(2,4)}</p><p style={{fontSize:11,color:"#64748B",marginTop:3}}>{T.calculated}: <span className="mono" style={{color:"#94A3B8"}}>{fmtC(getMonBal(editBM||""))}</span></p></div>
-          <div style={{display:"flex",flexDirection:"column",gap:11}}>
-            <div><label>{T.corrected} ({CURR.symbol})</label><input type="number" inputMode="decimal" value={tmpBal} onChange={e=>setTmpBal(e.target.value)}/></div>
-            <p style={{fontSize:11,color:"#64748B"}}>{T.adjustHint}</p>
-            <button className="btn" onClick={saveBal}>{T.save}</button>
-            {balH[editBM||""]?.adjusted&&<button className="btn2" style={{textAlign:"center",width:"100%"}} onClick={()=>{rmBal(editBM||"");setModal(null);}}>{T.removeAdj}</button>}
-          </div>
-        </Overlay>
-      )}
-
-      {/* ACCOUNT ADJ */}
-      {modal==="accAdj"&&editAccId&&(()=>{
-        const acc=accs.find(a=>a.id===editAccId);if(!acc)return null;
-        const current=getAccBal(editAccId);const real=parseFloat(accRealBal);const diff=isNaN(real)?0:round2(real-current);const otherAccs=accs.filter(a=>a.id!==editAccId);
-        return(<Overlay onClose={()=>setModal(null)}>
-          <MH title={XT.adjustAccount} onClose={()=>setModal(null)}/>
-          <div style={{background:"#111827",borderRadius:14,padding:12,marginBottom:12,display:"flex",gap:10,alignItems:"center"}}><div style={{width:42,height:42,borderRadius:12,background:acc.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{acc.icon}</div><div><p style={{fontSize:14,fontWeight:800}}>{acc.name}</p><p style={{fontSize:11,color:"#64748B"}}>{typeLabel(acc.type)}</p></div></div>
-          <div className="card" style={{marginBottom:12}}>
-            <p className="sh">{XT.adjustBalanceBtn}</p>
-            <div style={{display:"flex",flexDirection:"column",gap:11}}>
-              <div><label>{XT.currentAccountBalance}</label><div className="card" style={{padding:"12px 14px",borderRadius:12}}><span className="mono" style={{fontSize:16,fontWeight:800,color:current>=0?"#34D399":"#F87171"}}>{fmtC(current)}</span></div></div>
-              <div><label>{XT.realAccountBalance}</label><input type="number" inputMode="decimal" value={accRealBal} onChange={e=>setAccRealBal(e.target.value)}/></div>
-              <div><label>{XT.difference}</label><div className="card" style={{padding:"12px 14px",borderRadius:12}}><span className="mono" style={{fontSize:16,fontWeight:800,color:diff>=0?"#34D399":"#F87171"}}>{fmtC(diff)}</span></div></div>
-              <div><label>{XT.adjustmentNote}</label><input placeholder={XT.adjustmentNotePh} value={accAdjNote} onChange={e=>setAccAdjNote(e.target.value)}/></div>
-              <p style={{fontSize:11,color:"#64748B"}}>{XT.adjustAccountHint}</p>
-              <button className="btn" onClick={saveAccAdjustmentTx}>{XT.generateAdjustment}</button>
-              <button className="btn2" style={{width:"100%",textAlign:"center"}} onClick={saveAccBaseCorrection}>{XT.correctBaseBalance}</button>
-            </div>
-          </div>
-          <div className="card">
-            <p className="sh">{XT.deleteAccount}</p>
-            <p style={{fontSize:11,color:"#64748B",marginBottom:10}}>{XT.deleteAccountHint}</p>
-            <div style={{display:"flex",flexDirection:"column",gap:11}}>
-              <div><label>{XT.futurePendingAction}</label><div className="seg"><button className={`seg-b ${accDeleteFutureMode==="transfer"?"on":"off"}`} onClick={()=>setAccDeleteFutureMode("transfer")}>{XT.transferFutureTo}</button><button className={`seg-b ${accDeleteFutureMode==="delete"?"on":"off"}`} onClick={()=>setAccDeleteFutureMode("delete")}>{XT.deleteFutureTx}</button></div></div>
-              {accDeleteFutureMode==="transfer"&&<div><label>{XT.transferTarget}</label><select value={accDeleteTargetId} onChange={e=>setAccDeleteTargetId(e.target.value)}>{otherAccs.map(a=><option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}</select></div>}
-              <div><label>{XT.currentBalanceOnRemoval}</label><div className="seg"><button className={`seg-b ${accDeleteBalanceMode==="transfer"?"on":"off"}`} onClick={()=>setAccDeleteBalanceMode("transfer")}>{XT.transferBalanceTo}</button><button className={`seg-b ${accDeleteBalanceMode==="drop"?"on":"off"}`} onClick={()=>setAccDeleteBalanceMode("drop")}>{XT.dropBalanceOnRemoval}</button></div></div>
-              {accDeleteBalanceMode==="transfer"&&<div><label>{XT.transferTarget}</label><select value={accDeleteBalanceTargetId} onChange={e=>setAccDeleteBalanceTargetId(e.target.value)}>{otherAccs.map(a=><option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}</select></div>}
-              <button onClick={deleteAccountAndReconcile} style={{background:"linear-gradient(135deg,#EF4444,#DC2626)",border:"none",color:"#fff",borderRadius:13,padding:"13px",fontSize:14,fontWeight:700,cursor:"pointer"}}>{XT.deleteAccountConfirm}</button>
-              <p style={{fontSize:10,color:"#64748B"}}>✓ {XT.preservedHistory}</p>
-            </div>
-          </div>
-        </Overlay>);
-      })()}
-
-      {/* TX DETAIL */}
-      {modal==="txDet"&&detTx&&(()=>{
-        const cat=getCatById(allCats,detTx.cat);const acc=getTxAccountMeta(detTx);
-        const isTransfer=detTx.type==="transfer_in"||detTx.type==="transfer_out";
-        return(<Overlay onClose={()=>setModal(null)}>
-          <MH title={T.details} onClose={()=>setModal(null)}/>
-          <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:14}}>
-            <div style={{width:50,height:50,borderRadius:14,background:cat.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{cat.icon}</div>
-            <div><p style={{fontSize:16,fontWeight:800}}>{detTx.desc}</p><p style={{fontSize:12,color:cat.color,fontWeight:700}}>{getCatLabel(cat,userCfg.lang)}</p></div>
-          </div>
-          <div className="card" style={{marginBottom:12}}>
-            <Row label={T.value} val={<span className="mono" style={{fontSize:16,fontWeight:800,color:detTx.type==="income"||isTransfer&&detTx.type==="transfer_in"?"#34D399":detTx.status==="pending"?"#F59E0B":"#F87171"}}>{detTx.type==="income"||detTx.type==="transfer_in"?"+":"-"}{fmtC(detTx.amount)}</span>}/>
-            <Row label={T.type} val={isTransfer?T.transferL:detTx.type==="income"?T.incomeL:T.expenseL}/>
-            <Row label={T.date} val={new Date(detTx.date+"T12:00:00").toLocaleDateString()}/>
-            {detTx.dueDate&&<Row label={T.dueDate} val={new Date(detTx.dueDate+"T12:00:00").toLocaleDateString()}/>}
-            <Row label={T.statusL} val={<span className="pill" style={{background:detTx.status==="paid"?"#34D39918":"#F59E0B18",color:detTx.status==="paid"?"#34D399":"#F59E0B",border:`1px solid ${detTx.status==="paid"?"#34D39940":"#F59E0B40"}`}}>{detTx.status==="paid"?T.paidL:T.paying}</span>}/>
-            {acc&&<Row label={T.account} val={<span style={{color:acc.color}}>{acc.icon} {acc.name}</span>}/>}
-            {detTx.recurrent&&<Row label={T.recurrence} val={detTx.recurrence==="monthly"?T.monthly:detTx.recurrence==="weekly"?T.weekly:T.yearly}/>}
-            <Row label={T.category} val={<span style={{color:cat.color}}>{cat.icon} {getCatLabel(cat,userCfg.lang)}</span>} border={false}/>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            {detTx.status==="pending"&&<button onClick={()=>{markPaid(detTx.id);setModal(null);}} style={{flex:2,background:"linear-gradient(135deg,#10B981,#059669)",border:"none",color:"#fff",borderRadius:13,padding:"13px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{T.markPaid}</button>}
-            <button onClick={()=>delTx(detTx.id)} style={{flex:1,background:"#EF444415",border:"1px solid #EF444430",color:"#EF4444",borderRadius:13,padding:"13px",fontSize:13,fontWeight:700,cursor:"pointer"}}>{T.delete}</button>
-          </div>
-        </Overlay>);
-      })()}
-
-      {/* PIX MODAL */}
-      {pixModal&&(
-        <Overlay onClose={()=>setPixModal(null)}>
-          <MH title="PIX para teste" onClose={()=>setPixModal(null)} badge="FASE CONTROLADA"/>
-          <div style={{textAlign:"center",padding:"6px 0 16px"}}><div style={{fontSize:42,marginBottom:8}}>💠</div><p style={{fontSize:16,fontWeight:800,color:"#E8EDF5"}}>{pixModal.label}</p><p style={{fontSize:12,color:"#94A3B8",marginTop:5}}>1 USD = R$ {pixModal.rate}</p></div>
-          <div style={{background:"#111827",borderRadius:16,padding:"12px 14px",marginBottom:12}}>
-            <Row label="Valor USD" val={<span className="mono">{pixModal.usdValue.toFixed(2)} USD</span>}/>
-            <Row label="Valor BRL" val={<span className="mono" style={{color:"#34D399"}}>R$ {pixModal.brlValue.toFixed(2)}</span>}/>
-            <Row label="Chave PIX" val={<span className="mono" style={{fontSize:12}}>{pixModal.key}</span>} border={false}/>
-          </div>
-          <div style={{marginBottom:12}}><label>Código PIX</label><textarea readOnly value={pixModal.pixCode} style={{width:"100%",minHeight:120,resize:"none",background:"#111827",border:"1.5px solid #1F2D45",color:"#E8EDF5",borderRadius:14,padding:"12px",fontSize:11,lineHeight:1.45,fontFamily:"'JetBrains Mono',monospace"}}/></div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <button className="btn" onClick={()=>copyText(pixModal.pixCode)}>Copiar código PIX</button>
-            <button className="btn2" style={{width:"100%",textAlign:"center"}} onClick={()=>setPixModal(null)}>Fechar</button>
-          </div>
-        </Overlay>
-      )}
-
-      {/* TOAST */}
-      {toast&&(<div style={{position:"fixed",top:52,left:"50%",transform:"translateX(-50%)",background:toast.color,color:"#fff",padding:"9px 18px",borderRadius:20,fontSize:12,fontWeight:700,zIndex:400,whiteSpace:"nowrap",boxShadow:"0 4px 20px #0007",animation:"fi .25s ease",pointerEvents:"none"}}>{toast.msg}</div>)}
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-</script>
-</body>
-</html>
+              const monBal=getMonBal(selMon);
+              // For future: compute projected income and expense from projected txs
+              const projInc=projectedTxsForFuture.filter(t=>t.type==="income").reduce((a,t
