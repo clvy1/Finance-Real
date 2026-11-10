@@ -16,9 +16,9 @@ window.FR_CONFIG = {
   googleClientId: "",
   donate: {
     enabled: true,
-    pixKey: "clvy@hotmail.com",
-    receiverName: "Celso Ferreira",
-    receiverCity: "Rio de Janeiro",
+    pixKey: "",
+    receiverName: "",
+    receiverCity: "",
     usdToBrl: 5.05,
     recurringUrl: { monthly: "", yearly: "" }
   }
